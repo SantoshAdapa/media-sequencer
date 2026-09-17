@@ -4,7 +4,7 @@ A full-stack assignment project that continuously plays an ordered sequence of i
 videos, and blank screens across multiple virtual display windows — all in sync via a
 shared, drift-free, clock-based playback model.
 
-**Stack:** Go (chi router, SQLite) · React (Vite) · Fly.io (backend) · Vercel (frontend)
+**Stack:** Go (chi router, SQLite) · React (Vite) · Render (backend) · Vercel (frontend)
 
 ---
 
@@ -15,7 +15,7 @@ shared, drift-free, clock-based playback model.
 3. [Sync Design: Why Computed Time, Not a Running Timer](#3-sync-design-why-computed-time-not-a-running-timer)
 4. [API Reference](#4-api-reference)
 5. [Deployment](#5-deployment)
-   - [Backend — Fly.io](#backend--flyio)
+   - [Backend — Render](#backend--render-web-service)
    - [Frontend — Vercel](#frontend--vercel)
 6. [Assumptions & Trade-offs](#6-assumptions--trade-offs)
 7. [Live URLs](#7-live-urls)
@@ -57,7 +57,16 @@ every window automatically resumes its own playlist at the mathematically correc
 └─────────────────────────────────────────────────────────┘
 ```
 
----
+> [!NOTE]
+> **Ephemeral Database (Free Tier Trade-off):** The backend is deployed on Render's free
+> tier, which uses an ephemeral filesystem. If the service spins down due to inactivity
+> (typically after 15 minutes of no traffic), the SQLite database is wiped and resets to
+> its seeded state (5 windows with their default playlists) on next startup. Any media
+> items added via the UI will be lost after a spin-down. This is a known trade-off of the
+> free tier and is discussed further in the [Assumptions & Trade-offs](#6-assumptions--trade-offs)
+> section.
+
+
 
 ## 2. Local Development Setup
 
@@ -160,7 +169,7 @@ any origin.
 
 ### `GET /health`
 
-Liveness check used by monitoring systems and Fly.io health probes.
+Liveness check used by monitoring systems and Render health checks.
 
 **Response 200**
 ```json
@@ -345,17 +354,18 @@ The frontend is deployed as a static Single Page Application on [Vercel](https:/
 | **Database** | SQLite with `modernc.org/sqlite` (pure-Go driver) | Zero external dependencies, no database server to operate, works perfectly inside Docker without CGO. The data volume is tiny (< 1 MB for typical usage). Upgrade to PostgreSQL when you need concurrent writers or horizontal scaling. |
 | **Video looping within slot** | `<video loop>` attribute | If a video file is shorter than its `duration_seconds` slot, it loops continuously until the slot ends. If the file is longer, the math will cut to the next item before the video finishes. This is an acceptable approximation for a signage assignment. |
 | **No authentication** | All endpoints are open | Production deployment should add at minimum an API key for the `POST /sync` and `POST /windows/{id}/media` endpoints. |
-| **Single-instance SQLite** | One machine on Fly.io | SQLite does not support multiple concurrent writers across machines. `min_machines_running = 1` in `fly.toml` ensures Fly.io never runs more than one instance. Scale horizontally by migrating to PostgreSQL. |
+| **Single-instance SQLite** | One Render instance | SQLite does not support multiple concurrent writers across machines. Render's free tier runs only one instance at a time, which naturally satisfies this constraint. Scale horizontally by migrating to PostgreSQL. |
 | **Seed data** | Inserted once on empty DB | The seed check is `COUNT(*) FROM windows = 0`. Wiping the DB and restarting the server will re-seed automatically. |
+| **Ephemeral disk (Render free tier)** | DB resets on spin-down | Render's free tier does not provide a persistent disk. The SQLite file is lost when the instance sleeps. Upgrade to a paid Render tier with a Persistent Disk, or switch to PostgreSQL, for production use. |
 
 ---
 
 ## 7. Live URLs
 
-> Fill these in after completing deployment.
-
 | Service | URL |
 |---------|-----|
-| Backend (Fly.io) | `https://media-sequencer-api.fly.dev` |
-| Frontend (Vercel) | `https://your-project.vercel.app` |
-| Health check | `https://media-sequencer-api.fly.dev/health` |
+| Frontend (Vercel) | https://frontend-eta-seven-28.vercel.app |
+| Backend API (Render) | https://media-sequencer-api-sdad.onrender.com |
+| Health check | https://media-sequencer-api-sdad.onrender.com/health |
+| Windows API | https://media-sequencer-api-sdad.onrender.com/windows |
+| GitHub Repository | https://github.com/SantoshAdapa/media-sequencer |
