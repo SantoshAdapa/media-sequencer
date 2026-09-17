@@ -94,7 +94,7 @@ export function triggerSync(body) {
  * Checks whether a global sync event is currently active and, if so,
  * how many seconds remain before windows return to their normal playlists.
  *
- * @returns {Promise<{ active: boolean, mediaUrl: string, mediaType: string, remainingSeconds: number }>}
+ * @returns {Promise<{ active: boolean, mediaUrl: string, mediaType: string, startedAt: number, remainingSeconds: number }>}
  */
 export function getSyncStatus() {
   return apiFetch('/sync/status');

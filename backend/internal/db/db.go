@@ -157,7 +157,10 @@ func setupDatabaseAndSeed(db *sql.DB) error {
 	// seedItems defines the playlist for each window.
 	// Each inner slice is one window's playlist, in order.
 	// Fields: type, url, duration_seconds
-	type seedItem struct{ typ, url string; dur int }
+	type seedItem struct {
+		typ, url string
+		dur      int
+	}
 
 	seedPlaylists := [][]seedItem{
 		// Window 1 — mix of two images, two videos, one blank

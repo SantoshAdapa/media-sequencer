@@ -4,10 +4,10 @@
 package handlers
 
 import (
-	"log"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -42,11 +42,14 @@ type windowResponse struct {
 }
 
 // syncStatusResponse is what we send for GET /sync/status.
+// StartedAt is the Unix timestamp when the sync began — the frontend uses it
+// to calculate the correct video playback offset (nowSeconds - startedAt).
 // RemainingSeconds is zero when the sync is not active.
 type syncStatusResponse struct {
 	Active           bool   `json:"active"`
 	MediaURL         string `json:"mediaUrl"`
 	MediaType        string `json:"mediaType"`
+	StartedAt        int64  `json:"startedAt"`
 	RemainingSeconds int64  `json:"remainingSeconds"`
 }
 
@@ -103,8 +106,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
 }
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HANDLERS
@@ -264,6 +265,11 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, `"duration_seconds" must be a positive integer`)
 			return
 		}
+		// image/video items require a URL; blank items may omit it.
+		if (body.Type == "image" || body.Type == "video") && body.URL == "" {
+			writeError(w, http.StatusBadRequest, `"url" is required for image and video items`)
+			return
+		}
 
 		// Wrapping the existence check, the max-index lookup, and the insert in a
 		// transaction ensures that two concurrent requests cannot read the same
@@ -405,7 +411,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "failed to query remaining items")
 			return
 		}
-		
+
 		var remainingIDs []int
 		for rows.Next() {
 			var id int
@@ -565,6 +571,7 @@ func getSyncStatusHandler(db *sql.DB) http.HandlerFunc {
 			Active:           isActive,
 			MediaURL:         state.MediaURL,
 			MediaType:        state.MediaType,
+			StartedAt:        state.StartedAt,
 			RemainingSeconds: remaining,
 		})
 	}

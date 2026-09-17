@@ -21,7 +21,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("failed to open test db: %v", err)
 	}
 
-	// Create tables needed for the test
+	// Create tables needed for the tests
 	_, err = db.Exec(`
 		CREATE TABLE windows (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +37,16 @@ func setupTestDB(t *testing.T) *sql.DB {
 			order_index INTEGER NOT NULL,
 			FOREIGN KEY(window_id) REFERENCES windows(id)
 		);
+		CREATE TABLE sync_state (
+			id INTEGER PRIMARY KEY CHECK(id = 1),
+			active INTEGER NOT NULL DEFAULT 0,
+			media_url TEXT NOT NULL DEFAULT '',
+			media_type TEXT NOT NULL DEFAULT '',
+			started_at INTEGER NOT NULL DEFAULT 0,
+			duration_seconds INTEGER NOT NULL DEFAULT 0
+		);
 		INSERT INTO windows (name, cycle_start_time) VALUES ('Test Window', 1000);
+		INSERT INTO sync_state (id) VALUES (1);
 	`)
 	if err != nil {
 		t.Fatalf("failed to setup schema: %v", err)
@@ -76,9 +85,9 @@ func TestAddMediaHandler_RaceCondition(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/windows/1/media", bytes.NewReader(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			w := httptest.NewRecorder()
-			
+
 			// Simulate slight variations in start time to maximise collision chance
 			// if transactions were not used.
 			r.ServeHTTP(w, req)
@@ -130,5 +139,65 @@ func TestAddMediaHandler_RaceCondition(t *testing.T) {
 
 	if len(seen) != numRequests {
 		t.Errorf("Expected %d unique order_index values, got %d", numRequests, len(seen))
+	}
+}
+
+func TestSyncStatus_StartedAt(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	r := chi.NewRouter()
+	SetupRoutes(r, db)
+
+	// Step 1: POST /sync to start a sync event
+	syncBody := `{"media_url":"http://example.com/vid.mp4","media_type":"video","duration_seconds":60}`
+	req := httptest.NewRequest("POST", "/sync", bytes.NewBufferString(syncBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("POST /sync returned %d: %s", w.Code, w.Body.String())
+	}
+
+	beforeSync := time.Now().Unix()
+
+	// Step 2: GET /sync/status and verify startedAt is present and reasonable
+	req2 := httptest.NewRequest("GET", "/sync/status", nil)
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("GET /sync/status returned %d: %s", w2.Code, w2.Body.String())
+	}
+
+	var status struct {
+		Active           bool   `json:"active"`
+		MediaURL         string `json:"mediaUrl"`
+		MediaType        string `json:"mediaType"`
+		StartedAt        int64  `json:"startedAt"`
+		RemainingSeconds int64  `json:"remainingSeconds"`
+	}
+	if err := json.Unmarshal(w2.Body.Bytes(), &status); err != nil {
+		t.Fatalf("failed to parse sync status response: %v", err)
+	}
+
+	if !status.Active {
+		t.Error("expected sync to be active")
+	}
+	if status.StartedAt == 0 {
+		t.Error("startedAt must be non-zero when sync is active")
+	}
+	if status.StartedAt > beforeSync {
+		t.Errorf("startedAt (%d) should be <= current time (%d)", status.StartedAt, beforeSync)
+	}
+	if status.MediaURL != "http://example.com/vid.mp4" {
+		t.Errorf("unexpected mediaUrl: %s", status.MediaURL)
+	}
+	if status.MediaType != "video" {
+		t.Errorf("unexpected mediaType: %s", status.MediaType)
+	}
+	if status.RemainingSeconds <= 0 {
+		t.Error("remainingSeconds should be positive for an active sync")
 	}
 }

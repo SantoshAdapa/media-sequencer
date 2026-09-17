@@ -111,11 +111,11 @@ func TestComputeCurrentItem(t *testing.T) {
 	playlist := makeItems(10, 20, 15) // total = 45 s
 
 	tests := []struct {
-		name        string
-		items       []models.MediaItem
-		elapsed     int64
+		name         string
+		items        []models.MediaItem
+		elapsed      int64
 		wantOrderIdx int
-		wantErr     bool
+		wantErr      bool
 	}{
 		{
 			// 5 seconds in → inside item A [0,10)
@@ -237,11 +237,11 @@ func TestComputeSyncStatus(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		state           models.SyncState
-		now             int64
-		wantActive      bool
-		wantRemaining   int64
+		name          string
+		state         models.SyncState
+		now           int64
+		wantActive    bool
+		wantRemaining int64
 	}{
 		{
 			// Active=false in the DB → not active, zero remaining.

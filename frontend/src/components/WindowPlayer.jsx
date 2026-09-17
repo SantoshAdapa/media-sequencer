@@ -51,16 +51,30 @@ function MediaRenderer({ item }) {
   useEffect(() => {
     if (videoRef.current && item?.type === 'video' && item.offset != null && !hasError) {
       const vid = videoRef.current;
-      // If the video has loaded its metadata, we know its true duration.
-      // We modulo the offset by duration so that if a 10s video is played
-      // in a 30s slot, it correctly syncs to the 2nd or 3rd loop.
-      const targetTime = (vid.duration && vid.duration > 0) 
-        ? (item.offset % vid.duration) 
-        : item.offset;
+      const offset = item.offset;
 
-      const diff = Math.abs(vid.currentTime - targetTime);
-      if (diff > 1.0) {
-        vid.currentTime = targetTime;
+      // Guard: if offset is NaN or negative, skip seeking entirely.
+      if (!Number.isFinite(offset) || offset < 0) return;
+
+      // Only seek when the browser has loaded enough metadata to know the duration.
+      // If metadata isn't ready yet, attach a one-shot listener so we seek as soon as it is.
+      if (vid.readyState >= 1) {
+        const targetTime = (vid.duration && vid.duration > 0)
+          ? (offset % vid.duration)
+          : offset;
+        const diff = Math.abs(vid.currentTime - targetTime);
+        if (diff > 1.0) {
+          vid.currentTime = targetTime;
+        }
+      } else {
+        const onReady = () => {
+          const targetTime = (vid.duration && vid.duration > 0)
+            ? (offset % vid.duration)
+            : offset;
+          vid.currentTime = targetTime;
+        };
+        vid.addEventListener('loadedmetadata', onReady, { once: true });
+        return () => vid.removeEventListener('loadedmetadata', onReady);
       }
     }
   }, [item, hasError]);

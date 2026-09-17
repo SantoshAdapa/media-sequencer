@@ -31,7 +31,7 @@ function App() {
       setWindows(data ?? []);
       setError(null);
     } catch (err) {
-      setError('Could not reach the backend. Make sure the Go server is running on port 8080.');
+      setError('Could not reach the backend. Please wait a moment and retry.');
     } finally {
       setLoading(false);
     }

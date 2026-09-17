@@ -51,8 +51,6 @@ import (
 // playlist repeats many times before the outer cycle resets.
 const cycleLengthSeconds int64 = 5 * 60 * 60 // 18 000 seconds
 
-
-
 // ComputeElapsedInCycle answers the question:
 // "How far into its current 5-hour super-cycle is this window right now?"
 //
@@ -79,8 +77,6 @@ func ComputeElapsedInCycle(cycleStartTime int64, now int64) int64 {
 	// the result is 1 000 — one thousand seconds into the second super-cycle.
 	return elapsed % cycleLengthSeconds
 }
-
-
 
 // ComputeCurrentItem answers the question:
 // "Given that elapsedSeconds seconds have passed, which media item should be playing?"
@@ -136,8 +132,6 @@ func ComputeCurrentItem(items []models.MediaItem, elapsedSeconds int64) (models.
 		positionInPlaylist, totalDuration,
 	)
 }
-
-
 
 // ComputeSyncStatus answers the question:
 // "Is a global sync event happening right now, and if so, how many seconds are left?"

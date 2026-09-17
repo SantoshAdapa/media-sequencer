@@ -24,8 +24,8 @@ func main() {
 	}
 
 	// DB_PATH lets the deployment environment specify where the SQLite file should live.
-	// On Render we might point this at a persistent volume (e.g. /data/sequencer.db) 
-	// on paid tiers so data survives redeploys. Locally it defaults to the current 
+	// On Render we might point this at a persistent volume (e.g. /data/sequencer.db)
+	// on paid tiers so data survives redeploys. Locally it defaults to the current
 	// directory for convenience.
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
