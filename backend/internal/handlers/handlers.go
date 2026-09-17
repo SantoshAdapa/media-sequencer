@@ -4,7 +4,6 @@
 package handlers
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -105,33 +104,7 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
 }
 
-// fetchMediaItems retrieves the complete ordered playlist for a given window from the database.
-// Results are sorted by order_index ascending (0 first) so callers receive items in play order.
-// Returns an empty (non-nil) slice — never nil — so JSON always encodes as [] rather than null.
-func fetchMediaItems(ctx context.Context, db *sql.DB, windowID int) ([]models.MediaItem, error) {
-	rows, err := db.QueryContext(ctx, `
-		SELECT id, window_id, type, url, duration_seconds, order_index
-		FROM   media_items
-		WHERE  window_id = ?
-		ORDER  BY order_index ASC`, windowID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 
-	items := []models.MediaItem{} // pre-initialised so JSON encodes as [] not null
-	for rows.Next() {
-		var item models.MediaItem
-		if err := rows.Scan(
-			&item.ID, &item.WindowID, &item.Type,
-			&item.URL, &item.DurationSeconds, &item.OrderIndex,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HANDLERS
@@ -164,23 +137,65 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 		}
 		defer rows.Close()
 
-		// Capture the current Unix timestamp once so every window's calculation uses
-		// the same "now" value — important for consistency in a single response.
-		now := time.Now().Unix()
-		responses := []windowResponse{} // empty slice, never nil
-
+		var windowsData []models.Window
 		for rows.Next() {
 			var win models.Window
 			if err := rows.Scan(&win.ID, &win.Name, &win.CycleStartTime); err != nil {
 				writeError(w, http.StatusInternalServerError, "failed to read window row")
 				return
 			}
+			windowsData = append(windowsData, win)
+		}
+		// Close rows immediately so we free up the DB connection before making another query.
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			writeError(w, http.StatusInternalServerError, "error iterating windows")
+			return
+		}
 
-			// Load this window's full ordered playlist from the database.
-			items, err := fetchMediaItems(r.Context(), db, win.ID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "failed to query media items")
+		// Optimization: Avoid the N+1 query problem.
+		// Instead of looping through windows and firing a new query for each one's media items,
+		// we fetch all windows and all their media items in two queries total. We then group the
+		// items in Go memory, ensuring response time doesn't grow linearly with the number of windows.
+		itemRows, err := db.QueryContext(r.Context(), `
+			SELECT id, window_id, type, url, duration_seconds, order_index
+			FROM   media_items
+			ORDER  BY window_id ASC, order_index ASC`)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to query media items")
+			return
+		}
+		defer itemRows.Close()
+
+		// Group media items by window ID.
+		itemsMap := make(map[int][]models.MediaItem)
+		for itemRows.Next() {
+			var item models.MediaItem
+			if err := itemRows.Scan(
+				&item.ID, &item.WindowID, &item.Type,
+				&item.URL, &item.DurationSeconds, &item.OrderIndex,
+			); err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to read media item row")
 				return
+			}
+			itemsMap[item.WindowID] = append(itemsMap[item.WindowID], item)
+		}
+		itemRows.Close()
+		if err := itemRows.Err(); err != nil {
+			writeError(w, http.StatusInternalServerError, "error iterating media items")
+			return
+		}
+
+		// Capture the current Unix timestamp once so every window's calculation uses
+		// the same "now" value — important for consistency in a single response.
+		now := time.Now().Unix()
+		responses := []windowResponse{} // empty slice, never nil
+
+		// Assemble the final response.
+		for _, win := range windowsData {
+			items := itemsMap[win.ID]
+			if items == nil {
+				items = []models.MediaItem{} // ensure JSON encodes as [] not null
 			}
 
 			// ── Compute current item ──────────────────────────────────────────
@@ -202,11 +217,6 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 			}
 
 			responses = append(responses, resp)
-		}
-
-		if err := rows.Err(); err != nil {
-			writeError(w, http.StatusInternalServerError, "error iterating windows")
-			return
 		}
 
 		writeJSON(w, http.StatusOK, responses)
