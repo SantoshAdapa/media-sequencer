@@ -309,102 +309,30 @@ When inactive:
 
 ## 5. Deployment
 
-### Backend — Fly.io
+This project is deployed using a continuous integration flow from GitHub.
 
-The backend ships as a self-contained Docker image (multi-stage build, final stage is
-Alpine Linux). SQLite data is stored on a Fly.io **persistent volume** so it survives
-redeploys and machine restarts.
+### Backend — Render (Web Service)
 
-#### First-time setup
+The backend is deployed as a Dockerized Web Service on [Render](https://render.com). 
 
-```bash
-# 1. Authenticate
-flyctl auth login
+1. Push the code to a GitHub repository.
+2. In the Render Dashboard, create a **New Web Service** and connect the repository.
+3. **Settings used:**
+   - **Root Directory:** `backend` (Critical so Render finds the Dockerfile)
+   - **Environment:** Docker
+   - **Instance Type:** Free
 
-# 2. Move into the backend directory — fly commands must run from here
-cd backend
-
-# 3. Create a new Fly.io app.
-#    When prompted for a Postgres database, say NO — we use SQLite.
-#    When prompted for a deploy, say NO — we set up the volume first.
-flyctl launch --name media-sequencer-api --no-deploy
-
-# 4. Create the persistent volume in the same region as the app.
-#    1 GB is more than sufficient for SQLite + typical usage.
-flyctl volumes create sequencer_data --region sin --size 1
-
-# 5. Deploy the first build
-flyctl deploy
-
-# 6. Confirm the app is live
-flyctl open
-# or:
-curl https://media-sequencer-api.fly.dev/health
-```
-
-#### Subsequent deploys
-
-```bash
-cd backend
-flyctl deploy
-```
-
-#### What `fly.toml` configures
-
-| Setting | Value | Reason |
-|---------|-------|--------|
-| `PORT` env | `8080` | Matches `internal_port` |
-| `DB_PATH` env | `/data/sequencer.db` | Points into the mounted volume |
-| Volume mount | `/data` | Persistent disk for SQLite file |
-| Health check | `GET /health` every 15 s | Fly replaces unhealthy machines automatically |
-| `min_machines_running` | `1` | Avoid cold-starts for display windows |
-
----
+*Note on Persistence:* On the free tier of Render, the disk is ephemeral. The SQLite database will reset to the default seed data (5 windows) whenever the instance spins down due to inactivity. For a production deployment, upgrade to a paid Render tier with a Persistent Disk mounted at `/data`, or migrate to a managed PostgreSQL database.
 
 ### Frontend — Vercel
 
-Vercel auto-detects Vite projects (framework preset, build command, output directory).
-The only manual step is providing the backend URL as an environment variable.
+The frontend is deployed as a static Single Page Application on [Vercel](https://vercel.com).
 
-#### First-time setup
-
-```bash
-# 1. Authenticate
-vercel login
-
-# 2. Move into the frontend directory
-cd frontend
-
-# 3. Add the backend URL as a production environment variable.
-#    Replace the URL with your actual Fly.io app URL.
-vercel env add VITE_API_BASE_URL production
-# When prompted, enter: https://media-sequencer-api.fly.dev
-
-# 4. Deploy to production
-vercel --prod
-```
-
-> **Why is `VITE_API_BASE_URL` set in Vercel and not in `.env.local`?**
-> Vite bakes environment variables into the JavaScript bundle at build time.
-> `.env.local` is for local development only and is `.gitignore`-d.
-> Vercel injects `VITE_API_BASE_URL` into the build environment when it runs
-> `npm run build` on its servers, so the deployed bundle points at the right URL.
-
-#### Subsequent deploys
-
-```bash
-cd frontend
-vercel --prod
-# Vercel re-reads the environment variable from its dashboard automatically.
-```
-
-#### What `vercel.json` configures
-
-The `vercel.json` in `/frontend` contains a single rewrite rule:
-```json
-{ "source": "/(.*)", "destination": "/index.html" }
-```
-This ensures all URLs serve `index.html` (required for single-page applications).
+1. In the Vercel Dashboard, select **Add New Project** and import the GitHub repository.
+2. **Settings used:**
+   - **Root Directory:** `frontend` (Located in Settings > Build and Deployment)
+   - **Environment Variable:** `VITE_API_BASE_URL` set to the live Render backend URL (Type: Config/Plaintext).
+3. Vercel automatically detects Vite, runs `npm install`, and builds the output.
 
 ---
 
