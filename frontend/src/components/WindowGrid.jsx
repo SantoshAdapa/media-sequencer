@@ -1,5 +1,6 @@
 import WindowPlayer from './WindowPlayer';
 import AddMediaForm from './AddMediaForm';
+import PlaylistView from './PlaylistView';
 import './WindowGrid.css';
 
 /**
@@ -8,6 +9,7 @@ import './WindowGrid.css';
  *
  * Each "card" in the grid contains:
  *   - A WindowPlayer that shows the live-computed current media item.
+ *   - A PlaylistView to show and manage current items in the playlist.
  *   - An AddMediaForm so the user can append items to that window's playlist.
  */
 function WindowGrid({ windows, onMediaAdded }) {
@@ -29,6 +31,9 @@ function WindowGrid({ windows, onMediaAdded }) {
 
             {/* Live media player */}
             <WindowPlayer window={win} />
+
+            {/* View to manage the items currently in the playlist */}
+            <PlaylistView windowId={win.id} mediaItems={win.mediaItems} onSuccess={onMediaAdded} />
 
             {/* Form to add a new media item to this window */}
             <AddMediaForm windowId={win.id} onSuccess={onMediaAdded} />

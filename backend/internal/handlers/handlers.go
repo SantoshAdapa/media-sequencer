@@ -81,6 +81,7 @@ func SetupRoutes(r chi.Router, db *sql.DB) {
 	// dependency in and capture it in the function.
 	r.Get("/windows", getWindowsHandler(db))
 	r.Post("/windows/{id}/media", addMediaHandler(db))
+	r.Delete("/windows/{id}/media/{itemId}", deleteMediaHandler(db))
 	r.Post("/sync", triggerSyncHandler(db))
 	r.Get("/sync/status", getSyncStatusHandler(db))
 }
@@ -310,6 +311,94 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			OrderIndex:      nextIndex,
 		}
 		writeJSON(w, http.StatusCreated, created)
+	}
+}
+
+// ── DELETE /windows/{id}/media/{itemId} ───────────────────────────────────────
+
+// deleteMediaHandler removes a single media item from a window's playlist and
+// re-normalises the order_index of all remaining items to prevent gaps.
+func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		windowID, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "window id in URL must be an integer")
+			return
+		}
+
+		itemID, err := strconv.Atoi(chi.URLParam(r, "itemId"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "item id in URL must be an integer")
+			return
+		}
+
+		// Ensure the item exists and belongs to this window
+		var exists bool
+		err = db.QueryRowContext(r.Context(),
+			"SELECT EXISTS(SELECT 1 FROM media_items WHERE id = ? AND window_id = ?)",
+			itemID, windowID).Scan(&exists)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to check item existence")
+			return
+		}
+		if !exists {
+			writeError(w, http.StatusNotFound, "media item not found in this window")
+			return
+		}
+
+		// Run deletion and re-sequencing in a transaction so we never leave gaps
+		tx, err := db.BeginTx(r.Context(), nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+			return
+		}
+		defer func() { _ = tx.Rollback() }()
+
+		// Delete the item
+		_, err = tx.ExecContext(r.Context(),
+			"DELETE FROM media_items WHERE id = ? AND window_id = ?", itemID, windowID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to delete media item")
+			return
+		}
+
+		// Re-normalise remaining items to eliminate any index gaps
+		rows, err := tx.QueryContext(r.Context(),
+			"SELECT id FROM media_items WHERE window_id = ? ORDER BY order_index ASC", windowID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to query remaining items")
+			return
+		}
+		
+		var remainingIDs []int
+		for rows.Next() {
+			var id int
+			if err := rows.Scan(&id); err != nil {
+				rows.Close()
+				writeError(w, http.StatusInternalServerError, "failed to read remaining items")
+				return
+			}
+			remainingIDs = append(remainingIDs, id)
+		}
+		rows.Close()
+
+		// Update order_index sequentially without gaps
+		for newIndex, id := range remainingIDs {
+			_, err = tx.ExecContext(r.Context(),
+				"UPDATE media_items SET order_index = ? WHERE id = ?", newIndex, id)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "failed to update order_index")
+				return
+			}
+		}
+
+		if err := tx.Commit(); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to commit transaction")
+			return
+		}
+
+		// Return 204 No Content on success
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

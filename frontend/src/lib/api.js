@@ -63,6 +63,19 @@ export function addMedia(windowId, body) {
 }
 
 /**
+ * Removes a specific media item from a window's playlist.
+ *
+ * @param {number} windowId - The ID of the window.
+ * @param {number} itemId - The ID of the media item to remove.
+ * @returns {Promise<void>}
+ */
+export function deleteMedia(windowId, itemId) {
+  return apiFetch(`/windows/${windowId}/media/${itemId}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
  * Starts a global sync event that overrides every window's playlist.
  * All windows will show the given media simultaneously for `duration_seconds`.
  *
