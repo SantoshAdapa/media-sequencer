@@ -15,10 +15,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 
-	"media-sequencer/internal/models"
+	"github.com/SantoshAdapa/media-sequencer/backend/internal/models"
 	// Our sync package name clashes with the standard library "sync" package,
 	// so we import it under the alias "playback" to keep things readable.
-	playback "media-sequencer/internal/sync"
+	playback "github.com/SantoshAdapa/media-sequencer/backend/internal/sync"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

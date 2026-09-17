@@ -3,7 +3,7 @@ package sync
 import (
 	"testing"
 
-	"media-sequencer/internal/models"
+	"github.com/SantoshAdapa/media-sequencer/backend/internal/models"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

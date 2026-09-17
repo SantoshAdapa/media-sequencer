@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"media-sequencer/internal/db"
-	"media-sequencer/internal/handlers"
+	"github.com/SantoshAdapa/media-sequencer/backend/internal/db"
+	"github.com/SantoshAdapa/media-sequencer/backend/internal/handlers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

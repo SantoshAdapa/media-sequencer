@@ -42,7 +42,7 @@ import (
 	"errors"
 	"fmt"
 
-	"media-sequencer/internal/models"
+	"github.com/SantoshAdapa/media-sequencer/backend/internal/models"
 )
 
 // cycleLengthSeconds is the total duration of one "super-cycle" — the outer loop

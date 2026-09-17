@@ -1,0 +1,31 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Editor directories and files
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary files
+tmp/
+*.tmp
+*.bak
+*.swp

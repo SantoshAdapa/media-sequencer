@@ -1,4 +1,4 @@
-module media-sequencer
+module github.com/SantoshAdapa/media-sequencer/backend
 
 go 1.27.1
 
