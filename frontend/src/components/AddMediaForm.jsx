@@ -51,7 +51,7 @@ function AddMediaForm({ windowId, onSuccess }) {
     <form className="add-media-form" onSubmit={handleSubmit}>
 
       {/* Section label — plain text, not styled to look interactive */}
-      <p className="amf-label">Add media to this window's playlist</p>
+      <p className="amf-label">Add media</p>
 
       <div className="amf-fields">
         {/* Type selector */}

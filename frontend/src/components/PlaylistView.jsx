@@ -36,7 +36,7 @@ function PlaylistView({ windowId, mediaItems, onSuccess }) {
 
   return (
     <div className="playlist-view">
-      <p className="playlist-label">Current Playlist</p>
+      <p className="playlist-label">Current playlist</p>
       <ul className="playlist-list">
         {mediaItems.map((item, idx) => (
           <li key={item.id} className="playlist-item">

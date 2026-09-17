@@ -18,11 +18,9 @@
 }
 
 .playlist-label {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--text);
   margin-bottom: 4px;
 }
 
@@ -57,35 +55,39 @@
 }
 
 .item-index {
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text);
   min-width: 14px;
 }
 
 .item-type {
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 500;
   font-size: 0.625rem;
   padding: 2px 6px;
   border-radius: 3px;
+  text-transform: capitalize; /* Ensure it's not all caps if it was uppercase in JS */
 }
 
-.item-type.type-image { background: #1f4068; color: #79b8ff; }
-.item-type.type-video { background: #1f3a1a; color: #56d364; }
-.item-type.type-blank { background: #2d2d2d; color: #768390; }
+/* Muted tags instead of solid pills */
+.item-type.type-image { border: 1px solid #1f4068; background: transparent; color: #79b8ff; }
+.item-type.type-video { border: 1px solid #1f3a1a; background: transparent; color: #56d364; }
+.item-type.type-blank { border: 1px solid #30363d; background: transparent; color: #768390; }
 
 .item-duration {
   color: var(--text-muted);
+  font-size: 0.75rem;
   min-width: 25px;
   text-align: right;
 }
 
 .item-url {
   flex: 1;
+  min-width: 0; /* Ensures flex truncation works */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   margin-right: 4px;
 }
 
@@ -98,7 +100,7 @@
   line-height: 1;
   padding: 2px 4px;
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.3;
   transition: opacity 0.15s, color 0.15s, background-color 0.15s;
   border-radius: 3px;
 }
@@ -110,7 +112,7 @@
 }
 
 .btn-delete:disabled {
-  opacity: 0.2;
+  opacity: 0.15;
   cursor: not-allowed;
 }
 .btn-delete:focus-visible {
