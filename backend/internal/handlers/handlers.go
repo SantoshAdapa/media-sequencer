@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -57,15 +58,15 @@ type syncStatusResponse struct {
 // the correct handler function to each one. It also installs "middleware" — code that
 // runs automatically for EVERY request before the handler does (e.g. CORS headers).
 func SetupRoutes(r chi.Router, db *sql.DB) {
-	// ── CORS Middleware ──────────────────────────────────────────────────────
-	// Browsers enforce a security rule called the "Same-Origin Policy" that
-	// blocks a web page on domain A from calling an API on domain B.
-	// CORS (Cross-Origin Resource Sharing) is the standard way to opt out of
-	// that restriction for trusted callers. For this assignment we allow all
-	// origins ("*"). In a real production system this would be locked down to
-	// only the specific frontend domain.
+	// ── CORS Middleware ──
+
+	allowedOrigins := []string{"http://localhost:5173"}
+	if envOrigin := os.Getenv("FRONTEND_ORIGIN"); envOrigin != "" {
+		allowedOrigins = append(allowedOrigins, envOrigin)
+	}
+
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
