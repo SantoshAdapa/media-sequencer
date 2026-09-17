@@ -234,21 +234,6 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// ── Confirm the window exists ─────────────────────────────────────────
-		// We check before doing anything else so we can return a clear 404 rather
-		// than a confusing foreign-key constraint error from the database.
-		var exists bool
-		err = db.QueryRowContext(r.Context(),
-			"SELECT EXISTS(SELECT 1 FROM windows WHERE id = ?)", windowID).Scan(&exists)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to check if window exists")
-			return
-		}
-		if !exists {
-			writeError(w, http.StatusNotFound, "window not found")
-			return
-		}
-
 		// ── Decode the JSON request body ──────────────────────────────────────
 		var body struct {
 			Type            string `json:"type"`
@@ -270,12 +255,42 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// ── Run operations in a single transaction ────────────────────────────
+		// Wrapping the existence check, the max-index lookup, and the insert in a
+		// transaction ensures that two concurrent requests cannot read the same
+		// MAX(order_index) and insert conflicting duplicates.
+		tx, err := db.BeginTx(r.Context(), nil)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+			return
+		}
+		defer func() { _ = tx.Rollback() }()
+
+		// Force SQLite to acquire a write lock immediately to prevent deadlocks
+		// when upgrading from a read lock to a write lock concurrently.
+		_, _ = tx.ExecContext(r.Context(), "UPDATE windows SET id = id WHERE id = ?", windowID)
+
+		// ── Confirm the window exists ─────────────────────────────────────────
+		// We check before doing anything else so we can return a clear 404 rather
+		// than a confusing foreign-key constraint error from the database.
+		var exists bool
+		err = tx.QueryRowContext(r.Context(),
+			"SELECT EXISTS(SELECT 1 FROM windows WHERE id = ?)", windowID).Scan(&exists)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to check if window exists")
+			return
+		}
+		if !exists {
+			writeError(w, http.StatusNotFound, "window not found")
+			return
+		}
+
 		// ── Determine the next order_index ────────────────────────────────────
 		// We find the current highest position in the playlist and add 1.
 		// COALESCE(-1, …) handles the case where the playlist is empty: the first
 		// item will get index 0 (−1 + 1 = 0).
 		var maxIndex int
-		err = db.QueryRowContext(r.Context(),
+		err = tx.QueryRowContext(r.Context(),
 			"SELECT COALESCE(MAX(order_index), -1) FROM media_items WHERE window_id = ?",
 			windowID).Scan(&maxIndex)
 		if err != nil {
@@ -285,7 +300,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		nextIndex := maxIndex + 1
 
 		// ── Insert the new media item ─────────────────────────────────────────
-		result, err := db.ExecContext(r.Context(), `
+		result, err := tx.ExecContext(r.Context(), `
 			INSERT INTO media_items (window_id, type, url, duration_seconds, order_index)
 			VALUES (?, ?, ?, ?, ?)`,
 			windowID, body.Type, body.URL, body.DurationSeconds, nextIndex)
@@ -297,6 +312,11 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		newID, err := result.LastInsertId()
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to read new item ID")
+			return
+		}
+
+		if err := tx.Commit(); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to commit transaction")
 			return
 		}
 
