@@ -158,6 +158,7 @@ Reports whether a global sync is active. If the sync has expired naturally, the 
   "active": true,
   "mediaUrl": "https://example.com/video.mp4",
   "mediaType": "video",
+  "startedAt": 1789630578,
   "remainingSeconds": 22
 }
 ```

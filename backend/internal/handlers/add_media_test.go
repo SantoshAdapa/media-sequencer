@@ -160,9 +160,21 @@ func TestSyncStatus_StartedAt(t *testing.T) {
 		t.Fatalf("POST /sync returned %d: %s", w.Code, w.Body.String())
 	}
 
-	beforeSync := time.Now().Unix()
+	var postResponse struct {
+		Active          bool   `json:"active"`
+		MediaURL        string `json:"mediaUrl"`
+		MediaType       string `json:"mediaType"`
+		StartedAt       int64  `json:"startedAt"`
+		DurationSeconds int    `json:"durationSeconds"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &postResponse); err != nil {
+		t.Fatalf("failed to parse POST /sync response: %v", err)
+	}
+	if postResponse.StartedAt == 0 {
+		t.Error("POST /sync response startedAt must be non-zero")
+	}
 
-	// Step 2: GET /sync/status and verify startedAt is present and reasonable
+	// Step 2: GET /sync/status and verify startedAt matches
 	req2 := httptest.NewRequest("GET", "/sync/status", nil)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
@@ -185,11 +197,8 @@ func TestSyncStatus_StartedAt(t *testing.T) {
 	if !status.Active {
 		t.Error("expected sync to be active")
 	}
-	if status.StartedAt == 0 {
-		t.Error("startedAt must be non-zero when sync is active")
-	}
-	if status.StartedAt > beforeSync {
-		t.Errorf("startedAt (%d) should be <= current time (%d)", status.StartedAt, beforeSync)
+	if status.StartedAt != postResponse.StartedAt {
+		t.Errorf("GET startedAt (%d) does not match POST startedAt (%d)", status.StartedAt, postResponse.StartedAt)
 	}
 	if status.MediaURL != "http://example.com/vid.mp4" {
 		t.Errorf("unexpected mediaUrl: %s", status.MediaURL)
