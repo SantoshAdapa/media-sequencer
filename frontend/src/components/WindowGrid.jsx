@@ -27,21 +27,25 @@ function WindowGrid({ windows, onMediaAdded, syncStatus }) {
       <h2>Display Windows</h2>
       <div className="window-grid">
         {windows.map((win) => (
-          <button 
-            key={win.id} 
-            className="window-card" 
-            onClick={() => setEditingWindowId(win.id)}
-            aria-label={`Edit ${win.name}`}
-          >
+          <article key={win.id} className="window-card">
             {/* Window title bar */}
             <div className="window-card-header">
-              <span className="window-name">{win.name}</span>
-              <span className="window-meta">{win.mediaItems?.length ?? 0} items</span>
+              <div className="window-title-group">
+                <span className="window-name">{win.name}</span>
+                <span className="window-meta">{win.mediaItems?.length ?? 0} items</span>
+              </div>
+              <button 
+                className="btn-manage"
+                onClick={() => setEditingWindowId(win.id)}
+                aria-label={`Manage playlist for ${win.name}`}
+              >
+                Manage
+              </button>
             </div>
 
-            {/* Live media player (clicks inside here will bubble up to the button unless stopped, but WindowPlayer has no interactive elements) */}
+            {/* Live media player */}
             <WindowPlayer window={win} syncStatus={syncStatus} />
-          </button>
+          </article>
         ))}
       </div>
 

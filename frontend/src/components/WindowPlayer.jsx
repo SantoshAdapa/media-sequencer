@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getSyncStatus } from '../lib/api';
+
 import { computeElapsedInCycle, computeCurrentItem } from '../lib/cycleMath';
 import './WindowPlayer.css';
 

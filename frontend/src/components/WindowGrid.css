@@ -15,7 +15,7 @@
   .window-grid { grid-template-columns: 1fr; }
 }
 
-/* Individual window card as a clickable button */
+/* Individual window card */
 .window-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -25,20 +25,13 @@
   flex-direction: column;
   padding: 0;
   text-align: left;
-  cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
   color: var(--text);
 }
 
 .window-card:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.window-card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .window-card-header {
@@ -51,6 +44,12 @@
   width: 100%;
 }
 
+.window-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .window-name {
   font-weight: 600;
   font-size: 0.875rem;
@@ -59,4 +58,26 @@
 .window-meta {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.btn-manage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.btn-manage:hover {
+  border-color: var(--text-muted);
+  background: var(--border);
+}
+
+.btn-manage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
