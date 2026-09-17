@@ -37,22 +37,22 @@
   inset: 0;
   background: repeating-linear-gradient(
     45deg,
-    #1c1c1c 0px,
-    #1c1c1c 8px,
-    #111 8px,
-    #111 16px
+    #161b22 0px,
+    #161b22 8px,
+    #0d1117 8px,
+    #0d1117 16px
   );
 }
 
 /* ── Sync overlay badge ──────────────────────────────────────────────────── */
 .badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
+  top: var(--space-1);
+  right: var(--space-1);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
   letter-spacing: 0.05em;
   pointer-events: none; /* don't block clicks on the video */
 }
@@ -66,11 +66,11 @@
 .player-footer {
   display: flex;
   align-items: center;
-  padding: 7px 10px;
+  padding: 12px var(--space-2);
   background: var(--surface-2);
   border-top: 1px solid var(--border);
-  min-height: 30px;
-  font-size: 0.75rem;
+  min-height: 32px;
+  font-size: 0.8125rem;
 }
 
 /* Single readable caption: "Now playing: Video (30s) — Item 2 of 5" */
@@ -85,4 +85,3 @@
   color: var(--text-muted);
   font-style: italic;
 }
-

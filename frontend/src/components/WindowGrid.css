@@ -4,7 +4,7 @@
 .window-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--gap);
+  gap: var(--space-3);
 }
 
 @media (max-width: 1100px) {
@@ -33,17 +33,17 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 12px var(--space-2);
   border-bottom: 1px solid var(--border);
   background: var(--surface-2);
 }
 
 .window-name {
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .window-meta {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }

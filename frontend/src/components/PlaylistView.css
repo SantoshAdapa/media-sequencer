@@ -1,11 +1,11 @@
 /* PlaylistView.css ──────────────────────────────────────────────────────── */
 
 .playlist-view {
-  padding: 10px 12px;
+  padding: 12px var(--space-2);
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1);
   background: var(--surface-2);
 }
 
@@ -13,7 +13,7 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   font-style: italic;
-  padding: 12px;
+  padding: var(--space-2);
   text-align: center;
 }
 
@@ -43,17 +43,17 @@
 }
 .playlist-list::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius);
 }
 
 .playlist-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 4px;
+  gap: var(--space-1);
+  padding: 4px var(--space-1);
+  border-radius: var(--radius);
   background: var(--surface);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .item-index {
@@ -64,8 +64,8 @@
 .item-type {
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.65rem;
-  padding: 2px 4px;
+  font-size: 0.625rem;
+  padding: 2px 6px;
   border-radius: 3px;
 }
 
@@ -85,7 +85,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   margin-right: 4px;
 }
 
@@ -96,20 +96,24 @@
   color: var(--text-muted);
   font-size: 1.1rem;
   line-height: 1;
-  padding: 0 4px;
+  padding: 2px 4px;
   cursor: pointer;
   opacity: 0.5;
-  transition: all 0.15s ease;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
   border-radius: 3px;
 }
 
 .btn-delete:not(:disabled):hover {
   opacity: 1;
   color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
+  background: rgba(255, 107, 107, 0.15);
 }
 
 .btn-delete:disabled {
   opacity: 0.2;
   cursor: not-allowed;
+}
+.btn-delete:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
