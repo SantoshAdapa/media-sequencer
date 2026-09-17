@@ -1,45 +1,58 @@
+import { useState } from 'react';
 import WindowPlayer from './WindowPlayer';
-import AddMediaForm from './AddMediaForm';
-import PlaylistView from './PlaylistView';
+import EditModal from './EditModal';
 import './WindowGrid.css';
 
 /**
  * WindowGrid renders all display windows in a responsive CSS grid.
- * On a wide screen you get 3 columns; it collapses to 2 then 1 on smaller screens.
+ * The design target is to fit 5 window tiles side-by-side on a standard desktop screen.
  *
- * Each "card" in the grid contains:
- *   - A WindowPlayer that shows the live-computed current media item.
- *   - A PlaylistView to show and manage current items in the playlist.
- *   - An AddMediaForm so the user can append items to that window's playlist.
+ * Each "card" in the grid contains ONLY:
+ *   - Window title bar
+ *   - Live media player preview
+ *
+ * Clicking a card opens the EditModal to manage the playlist.
  */
 function WindowGrid({ windows, onMediaAdded }) {
+  const [editingWindowId, setEditingWindowId] = useState(null);
+
   if (windows.length === 0) {
     return <p className="status-msg">No windows found. Check that the backend seeded correctly.</p>;
   }
+
+  const editingWindow = windows.find(w => w.id === editingWindowId);
 
   return (
     <section>
       <h2>Display Windows</h2>
       <div className="window-grid">
         {windows.map((win) => (
-          <div key={win.id} className="window-card">
+          <button 
+            key={win.id} 
+            className="window-card" 
+            onClick={() => setEditingWindowId(win.id)}
+            aria-label={`Edit ${win.name}`}
+          >
             {/* Window title bar */}
             <div className="window-card-header">
               <span className="window-name">{win.name}</span>
               <span className="window-meta">{win.mediaItems?.length ?? 0} items</span>
             </div>
 
-            {/* Live media player */}
+            {/* Live media player (clicks inside here will bubble up to the button unless stopped, but WindowPlayer has no interactive elements) */}
             <WindowPlayer window={win} />
-
-            {/* View to manage the items currently in the playlist */}
-            <PlaylistView windowId={win.id} mediaItems={win.mediaItems} onSuccess={onMediaAdded} />
-
-            {/* Form to add a new media item to this window */}
-            <AddMediaForm windowId={win.id} onSuccess={onMediaAdded} />
-          </div>
+          </button>
         ))}
       </div>
+
+      {/* Edit Modal (renders conditionally) */}
+      {editingWindowId && (
+        <EditModal 
+          windowData={editingWindow} 
+          onClose={() => setEditingWindowId(null)} 
+          onMediaAdded={onMediaAdded}
+        />
+      )}
     </section>
   );
 }

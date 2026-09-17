@@ -1,0 +1,88 @@
+/* EditModal.css ──────────────────────────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.15s ease-out;
+  padding: var(--space-3);
+}
+
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: modalScaleIn 0.15s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.modal-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.modal-title .window-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.modal-title .window-meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.btn-close {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 4px;
+  margin: -4px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.btn-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.modal-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScaleIn {
+  from { transform: scale(0.97); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
