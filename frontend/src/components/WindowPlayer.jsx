@@ -26,28 +26,20 @@ import './WindowPlayer.css';
 //     each window self-sufficient during brief outages.
 //
 // ASSUMPTION — Video looping:
-//   Videos are set to loop continuously. If the actual video file is shorter
 //   than duration_seconds, the video will simply loop within that slot. If
 //   the file is longer, it will be cut off when the slot ends and the next
 //   item takes over. This is an acceptable simplification for this assignment.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── MediaRenderer ────────────────────────────────────────────────────────────
-// Picks the correct HTML element to display for any given media item type.
-
+// MediaRenderer picks the correct HTML element to display for a given media item type.
 function MediaRenderer({ item }) {
   const videoRef = useRef(null);
 
-  // When the item updates (which is every 500ms due to the WindowPlayer tick),
-  // we check if the video's actual playback time is drifting from the mathematically
-  // correct offset. If it's off by more than 1 second, we force a sync.
-  // This guarantees all windows stay in sync, but prevents stuttering.
+  // If the video's actual playback time is drifting from the mathematically correct offset,
+  // we force a sync. This guarantees all windows stay in sync, but prevents stuttering.
   useEffect(() => {
     if (videoRef.current && item?.type === 'video' && item.offset != null) {
       const vid = videoRef.current;
-      // If the video has loaded its metadata, we know its true duration.
-      // We modulo the offset by duration so that if a 10s video is played
-      // in a 30s slot, it correctly syncs to the 2nd or 3rd loop.
       const targetTime = (vid.duration && vid.duration > 0) 
         ? (item.offset % vid.duration) 
         : item.offset;
@@ -60,12 +52,10 @@ function MediaRenderer({ item }) {
   }, [item]);
 
   if (!item) {
-    // No item at all — show a dark placeholder.
     return <div className="media-blank" aria-label="No media" />;
   }
 
   if (item.type === 'blank') {
-    // An intentional empty slot in the schedule — dark box, not white.
     return <div className="media-blank" aria-label="Blank slot" />;
   }
 
@@ -75,8 +65,6 @@ function MediaRenderer({ item }) {
         src={item.url}
         alt="Scheduled media"
         className="media-content"
-        // If the image fails to load (dead URL etc.), we fall back to a visible
-        // error style rather than a broken-image icon filling the viewport.
         onError={(e) => { e.currentTarget.className = 'media-error'; }}
       />
     );
@@ -84,8 +72,7 @@ function MediaRenderer({ item }) {
 
   if (item.type === 'video') {
     // key={item.url} forces React to unmount and remount the <video> element
-    // whenever the URL changes. Without this, the browser keeps the old video
-    // in the player buffer even after the src attribute changes.
+    // whenever the URL changes, clearing the old video buffer.
     return (
       <video
         ref={videoRef}
@@ -103,31 +90,18 @@ function MediaRenderer({ item }) {
   return <div className="media-blank">{item.type} (unsupported)</div>;
 }
 
-// ─── WindowPlayer ─────────────────────────────────────────────────────────────
-
 /**
  * WindowPlayer is responsible for continuously showing the correct piece of media
- * for one display window. It ticks every 500 ms, checks for a global sync override,
- * and falls back to local cycle-math computation when no sync is active.
- *
- * Props:
- *   window — the full window object from the backend (id, name, cycleStartTime, mediaItems, currentItem)
+ * for one display window. It ticks every 500ms, checks for a global sync override,
+ * and falls back to local cycle-math computation.
  */
 function WindowPlayer({ window: win, syncStatus }) {
-  // currentItem: the MediaItem being shown right now (either from sync or from playlist).
   const [currentItem, setCurrentItem] = useState(win.currentItem ?? null);
 
-  // We keep a stable reference to win.mediaItems so the interval closure always
-  // sees the latest playlist even if the parent re-renders with updated data.
   const mediaItemsRef = useRef(win.mediaItems ?? []);
   const cycleStartRef = useRef(win.cycleStartTime);
-  
-  // We also keep a stable reference to the syncStatus passed from the parent.
-  // This allows the local tick interval to read the latest global sync state
-  // without needing to be torn down and recreated every 500ms.
   const syncStatusRef = useRef(syncStatus);
 
-  // Keep refs in sync with incoming props.
   useEffect(() => {
     mediaItemsRef.current = win.mediaItems ?? [];
     cycleStartRef.current = win.cycleStartTime;
@@ -135,16 +109,11 @@ function WindowPlayer({ window: win, syncStatus }) {
   }, [win.mediaItems, win.cycleStartTime, syncStatus]);
 
   useEffect(() => {
-    // ── TICK FUNCTION ──
-    // This runs every 500 ms. It is strictly local arithmetic.
-    // It does NO network polling — it relies entirely on the global syncStatusRef
-    // updated by the parent App component.
     const tick = () => {
       const status = syncStatusRef.current;
 
       if (status?.active) {
-        // ── SYNC MODE ──
-        // Override this window's normal playlist with the global sync media.
+        // SYNC MODE
         const nowSeconds = Math.floor(Date.now() / 1000);
         setCurrentItem({
           type: status.mediaType,
@@ -152,9 +121,7 @@ function WindowPlayer({ window: win, syncStatus }) {
           offset: Math.max(0, nowSeconds - status.startedAt),
         });
       } else {
-        // ── NORMAL MODE ──
-        // No sync. Compute which playlist item owns the current timestamp
-        // using purely local arithmetic — zero extra network calls.
+        // NORMAL MODE: zero network calls, purely local arithmetic
         const nowSeconds = Math.floor(Date.now() / 1000);
         const elapsed    = computeElapsedInCycle(cycleStartRef.current, nowSeconds);
         const item       = computeCurrentItem(mediaItemsRef.current, elapsed);
@@ -162,15 +129,9 @@ function WindowPlayer({ window: win, syncStatus }) {
       }
     };
 
-    tick(); // Run immediately on mount so we don't show stale data for 500 ms.
+    tick();
     const id = setInterval(tick, 500);
-
-    // Cleanup: when this component is removed from the page, cancel the interval.
     return () => clearInterval(id);
-
-    // We intentionally leave win.mediaItems / win.cycleStartTime out of the
-    // dependency array and instead use refs — this prevents the interval from
-    // being destroyed and recreated on every parent re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [win.id]);
 
@@ -180,7 +141,6 @@ function WindowPlayer({ window: win, syncStatus }) {
       <div className="media-viewport">
         <MediaRenderer item={currentItem} />
 
-        {/* Overlay badge — shown only while a global sync is active */}
         {syncStatus?.active && (
           <div className="badge badge-sync" title={`${syncStatus.remainingSeconds}s remaining`}>
             SYNCED — {syncStatus.remainingSeconds > 0 ? `${syncStatus.remainingSeconds}s left` : 'ending…'}
@@ -188,15 +148,12 @@ function WindowPlayer({ window: win, syncStatus }) {
         )}
       </div>
 
-      {/* Footer: human-readable caption of what is currently playing */}
       <div className="player-footer">
         {currentItem ? (
           <span className="player-caption">
             {syncStatus?.active
-              ? /* During a sync, say so clearly */
-                `Sync override: ${currentItem.type} — ${syncStatus.remainingSeconds}s remaining`
-              : /* Normal playback: spell out type, duration, and position */
-                `Now playing: ${
+              ? `Sync override: ${currentItem.type} — ${syncStatus.remainingSeconds}s remaining`
+              : `Now playing: ${
                   currentItem.type.charAt(0).toUpperCase() + currentItem.type.slice(1)
                 }${currentItem.durationSeconds != null ? ` (${currentItem.durationSeconds}s)` : ''}${
                   currentItem.orderIndex != null

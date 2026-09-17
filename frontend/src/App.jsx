@@ -6,13 +6,7 @@ import './index.css';
 
 /**
  * App is the root component of the Media Sequencer frontend.
- *
- * On first load it fetches the full list of display windows (including each
- * window's playlist and cycle_start_time) from the backend and stores them in
- * state. That state is then passed down to child components for rendering.
- *
- * fetchWindows is passed as a callback to child components so they can
- * trigger a re-fetch whenever something changes (e.g., a new media item is added).
+ * Manages the global sync polling loop and passes state down.
  */
 function App() {
   const [windows, setWindows]   = useState([]);
@@ -20,11 +14,6 @@ function App() {
   const [error,   setError]     = useState(null);
   const [syncStatus, setSyncStatus] = useState(null);
 
-  /**
-   * fetchWindows talks to the backend and refreshes our local list of windows.
-   * useCallback ensures the function reference is stable so it can safely be
-   * listed in dependency arrays of useEffect hooks in child components.
-   */
   const fetchWindows = useCallback(async () => {
     try {
       const data = await getWindows();
@@ -37,23 +26,20 @@ function App() {
     }
   }, []);
 
-  // Fetch windows once when the page first loads.
   useEffect(() => {
     fetchWindows();
   }, [fetchWindows]);
 
   // Global Sync Polling Loop:
-  // Instead of every WindowPlayer polling independently (causing N requests per 500ms),
-  // we poll once here and pass the state down.
+  // Polls the sync state once centrally to avoid N concurrent requests per 500ms
+  // from individual WindowPlayers.
   useEffect(() => {
     let lastStatusStr = '';
     const tick = async () => {
       try {
         const status = await getSyncStatus();
         const statusStr = JSON.stringify(status);
-        // Only update state (and trigger re-renders) if the status actually changed.
-        // During an active sync, remainingSeconds ticks down, so this updates regularly.
-        // During normal playback, this stays static, saving massive amounts of CPU/renders.
+        // Only update state if the status actually changed to minimize re-renders.
         if (statusStr !== lastStatusStr) {
           lastStatusStr = statusStr;
           setSyncStatus(status);
