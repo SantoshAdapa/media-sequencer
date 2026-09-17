@@ -188,6 +188,13 @@ func TestComputeCurrentItem(t *testing.T) {
 			elapsed: 10,
 			wantErr: true,
 		},
+		{
+			// All items have zero duration — must return an error
+			name:    "all zero duration items — returns error",
+			items:   makeItems(0, 0, 0),
+			elapsed: 10,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
