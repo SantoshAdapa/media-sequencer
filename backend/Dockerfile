@@ -3,7 +3,7 @@
 # ---------------------------------------------------------
 # We start with an official Go image that includes all the tools required to compile our code.
 # Think of this stage as a factory that puts together the application.
-FROM golang:1.23-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 # We set the working directory inside the container. All subsequent commands will happen here.
 WORKDIR /app
