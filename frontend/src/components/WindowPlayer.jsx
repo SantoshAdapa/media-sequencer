@@ -113,42 +113,38 @@ function MediaRenderer({ item }) {
  * Props:
  *   window — the full window object from the backend (id, name, cycleStartTime, mediaItems, currentItem)
  */
-function WindowPlayer({ window: win }) {
+function WindowPlayer({ window: win, syncStatus }) {
   // currentItem: the MediaItem being shown right now (either from sync or from playlist).
   const [currentItem, setCurrentItem] = useState(win.currentItem ?? null);
-
-  // syncInfo: if a sync is active, holds { active, mediaUrl, mediaType, remainingSeconds }.
-  const [syncInfo, setSyncInfo] = useState(null);
 
   // We keep a stable reference to win.mediaItems so the interval closure always
   // sees the latest playlist even if the parent re-renders with updated data.
   const mediaItemsRef = useRef(win.mediaItems ?? []);
   const cycleStartRef = useRef(win.cycleStartTime);
+  
+  // We also keep a stable reference to the syncStatus passed from the parent.
+  // This allows the local tick interval to read the latest global sync state
+  // without needing to be torn down and recreated every 500ms.
+  const syncStatusRef = useRef(syncStatus);
 
   // Keep refs in sync with incoming props.
   useEffect(() => {
     mediaItemsRef.current = win.mediaItems ?? [];
     cycleStartRef.current = win.cycleStartTime;
-  }, [win.mediaItems, win.cycleStartTime]);
+    syncStatusRef.current = syncStatus;
+  }, [win.mediaItems, win.cycleStartTime, syncStatus]);
 
   useEffect(() => {
-    // ── TICK FUNCTION ──────────────────────────────────────────────────────
-    // This runs every 500 ms. It is defined as async so we can await the
-    // network call to /sync/status without blocking the browser's event loop.
-    const tick = async () => {
-      let status = null;
-
-      try {
-        // Step 1: Ask the server if a global sync event is happening.
-        status = await getSyncStatus();
-      } catch (_) {
-        // Network error — proceed as if sync is off (local fallback below).
-      }
+    // ── TICK FUNCTION ──
+    // This runs every 500 ms. It is strictly local arithmetic.
+    // It does NO network polling — it relies entirely on the global syncStatusRef
+    // updated by the parent App component.
+    const tick = () => {
+      const status = syncStatusRef.current;
 
       if (status?.active) {
         // ── SYNC MODE ──
         // Override this window's normal playlist with the global sync media.
-        setSyncInfo(status);
         const nowSeconds = Math.floor(Date.now() / 1000);
         setCurrentItem({
           type: status.mediaType,
@@ -156,10 +152,9 @@ function WindowPlayer({ window: win }) {
           offset: Math.max(0, nowSeconds - status.startedAt),
         });
       } else {
-        // ── NORMAL MODE ─────────────────────────────────────────────────────
+        // ── NORMAL MODE ──
         // No sync. Compute which playlist item owns the current timestamp
         // using purely local arithmetic — zero extra network calls.
-        setSyncInfo(null);
         const nowSeconds = Math.floor(Date.now() / 1000);
         const elapsed    = computeElapsedInCycle(cycleStartRef.current, nowSeconds);
         const item       = computeCurrentItem(mediaItemsRef.current, elapsed);
@@ -171,8 +166,6 @@ function WindowPlayer({ window: win }) {
     const id = setInterval(tick, 500);
 
     // Cleanup: when this component is removed from the page, cancel the interval.
-    // Without this, the interval would keep running and try to update state on
-    // a component that no longer exists, causing React warnings.
     return () => clearInterval(id);
 
     // We intentionally leave win.mediaItems / win.cycleStartTime out of the
@@ -188,9 +181,9 @@ function WindowPlayer({ window: win }) {
         <MediaRenderer item={currentItem} />
 
         {/* Overlay badge — shown only while a global sync is active */}
-        {syncInfo?.active && (
-          <div className="badge badge-sync" title={`${syncInfo.remainingSeconds}s remaining`}>
-            SYNCED — {syncInfo.remainingSeconds > 0 ? `${syncInfo.remainingSeconds}s left` : 'ending…'}
+        {syncStatus?.active && (
+          <div className="badge badge-sync" title={`${syncStatus.remainingSeconds}s remaining`}>
+            SYNCED — {syncStatus.remainingSeconds > 0 ? `${syncStatus.remainingSeconds}s left` : 'ending…'}
           </div>
         )}
       </div>
@@ -199,9 +192,9 @@ function WindowPlayer({ window: win }) {
       <div className="player-footer">
         {currentItem ? (
           <span className="player-caption">
-            {syncInfo?.active
+            {syncStatus?.active
               ? /* During a sync, say so clearly */
-                `Sync override: ${currentItem.type} — ${syncInfo.remainingSeconds}s remaining`
+                `Sync override: ${currentItem.type} — ${syncStatus.remainingSeconds}s remaining`
               : /* Normal playback: spell out type, duration, and position */
                 `Now playing: ${
                   currentItem.type.charAt(0).toUpperCase() + currentItem.type.slice(1)

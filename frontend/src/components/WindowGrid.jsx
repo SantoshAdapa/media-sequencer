@@ -13,7 +13,7 @@ import './WindowGrid.css';
  *
  * Clicking a card opens the EditModal to manage the playlist.
  */
-function WindowGrid({ windows, onMediaAdded }) {
+function WindowGrid({ windows, onMediaAdded, syncStatus }) {
   const [editingWindowId, setEditingWindowId] = useState(null);
 
   if (windows.length === 0) {
@@ -40,7 +40,7 @@ function WindowGrid({ windows, onMediaAdded }) {
             </div>
 
             {/* Live media player (clicks inside here will bubble up to the button unless stopped, but WindowPlayer has no interactive elements) */}
-            <WindowPlayer window={win} />
+            <WindowPlayer window={win} syncStatus={syncStatus} />
           </button>
         ))}
       </div>

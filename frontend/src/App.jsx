@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getWindows } from './lib/api';
+import { getWindows, getSyncStatus } from './lib/api';
 import WindowGrid from './components/WindowGrid';
 import SyncTrigger from './components/SyncTrigger';
 import './index.css';
@@ -18,6 +18,7 @@ function App() {
   const [windows, setWindows]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error,   setError]     = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null);
 
   /**
    * fetchWindows talks to the backend and refreshes our local list of windows.
@@ -41,6 +42,35 @@ function App() {
     fetchWindows();
   }, [fetchWindows]);
 
+  // Global Sync Polling Loop:
+  // Instead of every WindowPlayer polling independently (causing N requests per 500ms),
+  // we poll once here and pass the state down.
+  useEffect(() => {
+    let lastStatusStr = '';
+    const tick = async () => {
+      try {
+        const status = await getSyncStatus();
+        const statusStr = JSON.stringify(status);
+        // Only update state (and trigger re-renders) if the status actually changed.
+        // During an active sync, remainingSeconds ticks down, so this updates regularly.
+        // During normal playback, this stays static, saving massive amounts of CPU/renders.
+        if (statusStr !== lastStatusStr) {
+          lastStatusStr = statusStr;
+          setSyncStatus(status);
+        }
+      } catch (_) {
+        if (lastStatusStr !== 'null') {
+          lastStatusStr = 'null';
+          setSyncStatus(null);
+        }
+      }
+    };
+
+    tick();
+    const id = setInterval(tick, 500);
+    return () => clearInterval(id);
+  }, []);
+
   if (loading) return <p className="status-msg">Loading windows…</p>;
   if (error)   return <p className="status-msg error">{error}</p>;
 
@@ -61,7 +91,7 @@ function App() {
         <SyncTrigger />
 
         {/* Grid of individual window players */}
-        <WindowGrid windows={windows} onMediaAdded={fetchWindows} />
+        <WindowGrid windows={windows} onMediaAdded={fetchWindows} syncStatus={syncStatus} />
       </main>
     </div>
   );
