@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { triggerSync } from '../lib/api';
+import { validateImage, validateVideo } from '../lib/mediaValidator';
 import './SyncTrigger.css';
 
 /**
@@ -24,6 +25,22 @@ function SyncTrigger() {
     e.preventDefault();
     setStatus('loading');
     setErrMsg('');
+
+    if (mediaType === 'image') {
+      const isValid = await validateImage(mediaUrl);
+      if (!isValid) {
+        setErrMsg('Unable to load image. Check the URL.');
+        setStatus('error');
+        return;
+      }
+    } else if (mediaType === 'video') {
+      const isValid = await validateVideo(mediaUrl);
+      if (!isValid) {
+        setErrMsg('Unable to load video. Check the URL.');
+        setStatus('error');
+        return;
+      }
+    }
 
     try {
       await triggerSync({

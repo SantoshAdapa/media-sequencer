@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { addMedia } from '../lib/api';
+import { validateImage, validateVideo } from '../lib/mediaValidator';
 import './AddMediaForm.css';
 
 /**
@@ -23,6 +24,22 @@ function AddMediaForm({ windowId, onSuccess }) {
     e.preventDefault();
     setStatus('loading');
     setErrMsg('');
+
+    if (type === 'image') {
+      const isValid = await validateImage(url);
+      if (!isValid) {
+        setErrMsg('Unable to load image. Check the URL.');
+        setStatus('error');
+        return;
+      }
+    } else if (type === 'video') {
+      const isValid = await validateVideo(url);
+      if (!isValid) {
+        setErrMsg('Unable to load video. Check the URL.');
+        setStatus('error');
+        return;
+      }
+    }
 
     try {
       await addMedia(windowId, {
