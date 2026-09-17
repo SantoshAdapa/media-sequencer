@@ -4,6 +4,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -274,22 +275,29 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		// Wrapping the existence check, the max-index lookup, and the insert in a
 		// transaction ensures that two concurrent requests cannot read the same
 		// MAX(order_index) and insert conflicting duplicates.
-		tx, err := db.BeginTx(r.Context(), nil)
+		conn, err := db.Conn(r.Context())
 		if err != nil {
-			log.Printf("failed to begin transaction: %v", err)
+			log.Printf("failed to get db connection: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
 			return
 		}
-		defer func() { _ = tx.Rollback() }()
+		defer conn.Close()
 
-		// Force SQLite to acquire a write lock immediately to prevent deadlocks
-		// when upgrading from a read lock to a write lock concurrently.
-		_, _ = tx.ExecContext(r.Context(), "UPDATE windows SET id = id WHERE id = ?", windowID)
+		// This tells SQLite to lock the database for writing as soon as the transaction starts,
+		// rather than waiting until the first write — this is what actually prevents two
+		// simultaneous 'Add Item' requests from reading the same playlist position and creating a conflict.
+		_, err = conn.ExecContext(r.Context(), "BEGIN IMMEDIATE")
+		if err != nil {
+			log.Printf("failed to begin immediate transaction: %v", err)
+			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
+			return
+		}
+		defer func() { _, _ = conn.ExecContext(context.Background(), "ROLLBACK") }()
 
 		// We check before doing anything else so we can return a clear 404 rather
 		// than a confusing foreign-key constraint error from the database.
 		var exists bool
-		err = tx.QueryRowContext(r.Context(),
+		err = conn.QueryRowContext(r.Context(),
 			"SELECT EXISTS(SELECT 1 FROM windows WHERE id = ?)", windowID).Scan(&exists)
 		if err != nil {
 			log.Printf("failed to check if window exists: %v", err)
@@ -305,7 +313,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		// COALESCE(-1, …) handles the case where the playlist is empty: the first
 		// item will get index 0 (−1 + 1 = 0).
 		var maxIndex int
-		err = tx.QueryRowContext(r.Context(),
+		err = conn.QueryRowContext(r.Context(),
 			"SELECT COALESCE(MAX(order_index), -1) FROM media_items WHERE window_id = ?",
 			windowID).Scan(&maxIndex)
 		if err != nil {
@@ -315,7 +323,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		}
 		nextIndex := maxIndex + 1
 
-		result, err := tx.ExecContext(r.Context(), `
+		result, err := conn.ExecContext(r.Context(), `
 			INSERT INTO media_items (window_id, type, url, duration_seconds, order_index)
 			VALUES (?, ?, ?, ?, ?)`,
 			windowID, body.Type, body.URL, body.DurationSeconds, nextIndex)
@@ -332,7 +340,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if err := tx.Commit(); err != nil {
+		if _, err := conn.ExecContext(r.Context(), "COMMIT"); err != nil {
 			log.Printf("failed to commit transaction: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to commit transaction")
 			return
