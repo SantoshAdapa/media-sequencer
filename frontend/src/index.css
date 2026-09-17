@@ -1,0 +1,109 @@
+/* ── Global reset & design tokens ─────────────────────────────────────────── */
+:root {
+  --bg:           #111418;
+  --surface:      #1c2128;
+  --surface-2:    #252c35;
+  --border:       #30363d;
+  --text:         #cdd9e5;
+  --text-muted:   #768390;
+  --accent:       #4493f8;
+  --success:      #3fb950;
+  --error:        #f85149;
+  --warn:         #d29922;
+  --radius:       6px;
+  --gap:          16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+h1 { font-size: 1.15rem; font-weight: 600; }
+h2 { font-size: 1rem;    font-weight: 600; margin-bottom: 12px; }
+h3 { font-size: 0.9rem;  font-weight: 600; }
+h4 { font-size: 0.8rem;  font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── App shell ───────────────────────────────────────────────────────────── */
+.app-header {
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header h1 { color: var(--accent); }
+
+.app-main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Status messages ─────────────────────────────────────────────────────── */
+.status-msg {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+.status-msg.error { color: var(--error); }
+
+/* ── Shared form styles ──────────────────────────────────────────────────── */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+input,
+select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus,
+select:focus { border-color: var(--accent); }
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:not(:disabled):hover { opacity: 0.85; }
+
+.msg-success { color: var(--success); font-size: 0.78rem; }
+.msg-error   { color: var(--error);   font-size: 0.78rem; }
+
+.form-row { display: flex; flex-direction: column; gap: 4px; }

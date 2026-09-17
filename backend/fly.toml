@@ -1,0 +1,70 @@
+# fly.toml — Fly.io deployment configuration for the Media Sequencer backend.
+# Place this file in the /backend directory alongside the Dockerfile.
+# Run all fly commands from that directory.
+#
+# Reference: https://fly.io/docs/reference/configuration/
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+# Replace "media-sequencer-api" with whatever name you chose during `fly launch`.
+app    = "media-sequencer-api"
+# "sin" = Singapore. Choose the region closest to your users.
+# Run `fly platform regions` for the full list.
+primary_region = "sin"
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+[build]
+  # Fly.io will use the existing multi-stage Dockerfile in this directory.
+  # No extra build arguments are needed; the binary ends up in the final
+  # Alpine image and the sqlite driver is compiled in (pure-Go, no CGO).
+
+# ── Runtime environment variables ─────────────────────────────────────────────
+[env]
+  # PORT is the port the Go server listens on. Must match internal_port below.
+  PORT    = "8080"
+  # DB_PATH tells the Go server where to create/open the SQLite file.
+  # /data is the mount point of our persistent volume (see [[mounts]] below),
+  # so the database survives redeploys and machine restarts.
+  DB_PATH = "/data/sequencer.db"
+
+# ── HTTP service ──────────────────────────────────────────────────────────────
+[http_service]
+  # The port your Go binary actually listens on (must match PORT above).
+  internal_port       = 8080
+  # Redirect all plain-HTTP requests to HTTPS automatically.
+  force_https         = true
+  # Scale to zero when there is no traffic (free-tier friendly).
+  auto_stop_machines  = true
+  auto_start_machines = true
+  # Keep at least one machine running so cold-starts don't affect the first user.
+  min_machines_running = 1
+
+  # Health-check configuration. Fly.io calls GET /health every 15 s.
+  # If it fails 3 times in a row the machine is replaced.
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval     = "15s"
+    method       = "GET"
+    path         = "/health"
+    timeout      = "5s"
+
+# ── Persistent volume ─────────────────────────────────────────────────────────
+# WHY A VOLUME?
+# SQLite stores all data in a single file on disk. Fly.io's default file system
+# is ephemeral — it is wiped on every redeploy. A volume is a small persistent
+# disk that survives redeploys and machine restarts. We mount it at /data and
+# set DB_PATH=/data/sequencer.db so all writes go there.
+#
+# BEFORE YOUR FIRST DEPLOY, create the volume:
+#   fly volumes create sequencer_data --region sin --size 1
+# (1 GB is more than enough for SQLite with typical media sequencer usage.)
+[[mounts]]
+  source      = "sequencer_data"   # the name you gave to `fly volumes create`
+  destination = "/data"            # where it appears inside the container
+
+# ── VM sizing ─────────────────────────────────────────────────────────────────
+[[vm]]
+  # shared-cpu-1x with 256 MB RAM is sufficient for a Go/SQLite backend
+  # serving a handful of display windows. Upgrade if you add many concurrent clients.
+  memory   = "256mb"
+  cpu_kind = "shared"
+  cpus     = 1

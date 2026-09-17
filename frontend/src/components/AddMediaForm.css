@@ -1,0 +1,34 @@
+/* AddMediaForm.css ──────────────────────────────────────────────────────── */
+
+.add-media-form {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-media-form h4 {
+  margin-bottom: 2px;
+}
+
+/* Stack the fields vertically, each taking full width */
+.amf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Row with the submit button and feedback messages */
+.amf-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.amf-footer button {
+  /* Keep the add button compact; it lives inside a small card */
+  padding: 4px 12px;
+  font-size: 0.78rem;
+}

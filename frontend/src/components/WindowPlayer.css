@@ -1,0 +1,102 @@
+/* WindowPlayer.css ──────────────────────────────────────────────────────── */
+
+.window-player {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 16 : 9 aspect-ratio wrapper using the padding-top trick.
+   The actual content sits absolutely inside this box so it fills the space. */
+.media-viewport {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%; /* 9/16 = 0.5625 */
+  background: #000;
+  overflow: hidden;
+}
+
+/* Images and videos both fill the viewport, cropping if necessary. */
+.media-content {
+  position: absolute;
+  inset: 0;           /* shorthand for top/right/bottom/left: 0 */
+  width: 100%;
+  height: 100%;
+  object-fit: cover;  /* fill the box; crop rather than letterbox */
+}
+
+/* A "blank" slot is an intentionally dark rectangle — not an error. */
+.media-blank {
+  position: absolute;
+  inset: 0;
+  background: #0d1117;  /* slightly lighter than black so it reads as deliberate */
+}
+
+/* Shown when an image URL fails to load. */
+.media-error {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    #1c1c1c 0px,
+    #1c1c1c 8px,
+    #111 8px,
+    #111 16px
+  );
+}
+
+/* ── Sync overlay badge ──────────────────────────────────────────────────── */
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  pointer-events: none; /* don't block clicks on the video */
+}
+
+.badge-sync {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Player footer ────────────────────────────────────────────────────────── */
+.player-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  min-height: 28px;
+  font-size: 0.72rem;
+}
+
+/* Colour-coded chip for the media type */
+.type-chip {
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.type-image { background: #1f4068; color: #79b8ff; }
+.type-video { background: #1f3a1a; color: #56d364; }
+.type-blank { background: #2d2d2d; color: #768390; }
+
+.player-duration,
+.player-index {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.player-index { margin-left: auto; }
+
+.player-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}

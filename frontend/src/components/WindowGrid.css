@@ -1,0 +1,49 @@
+/* WindowGrid.css ─────────────────────────────────────────────────────────── */
+
+/* 3-column grid on wide screens, collapsing on smaller viewports */
+.window-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+}
+
+@media (max-width: 1100px) {
+  .window-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .window-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Individual window card */
+.window-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.window-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.window-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}

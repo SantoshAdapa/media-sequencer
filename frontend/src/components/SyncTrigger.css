@@ -1,0 +1,51 @@
+/* SyncTrigger.css ───────────────────────────────────────────────────────── */
+
+.sync-trigger {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sync-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sync-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  max-width: 60ch;
+}
+
+/* Horizontal row of fields on wide screens, vertical stack on narrow */
+.sync-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+/* Type and Duration labels are narrow; URL label should stretch to fill remaining space */
+.sync-fields label { min-width: 100px; flex: 0 0 auto; }
+.sync-url-label    { flex: 1 1 260px; }
+
+/* Bottom row with the submit button and feedback */
+.sync-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Make the sync button slightly more prominent than the per-window "Add" buttons */
+.sync-btn {
+  background: #6e40c9;   /* purple to distinguish from the blue "Add" buttons */
+  padding: 6px 18px;
+  font-size: 0.85rem;
+}
+.sync-btn:not(:disabled):hover { background: #7d4fd4; opacity: 1; }
