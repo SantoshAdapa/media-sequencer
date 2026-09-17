@@ -1,0 +1,115 @@
+/* PlaylistView.css ──────────────────────────────────────────────────────── */
+
+.playlist-view {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-2);
+}
+
+.playlist-view.empty {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
+
+.playlist-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.playlist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar for playlist */
+.playlist-list::-webkit-scrollbar {
+  width: 4px;
+}
+.playlist-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  font-size: 0.72rem;
+}
+
+.item-index {
+  color: var(--text-muted);
+  min-width: 14px;
+}
+
+.item-type {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.item-type.type-image { background: #1f4068; color: #79b8ff; }
+.item-type.type-video { background: #1f3a1a; color: #56d364; }
+.item-type.type-blank { background: #2d2d2d; color: #768390; }
+
+.item-duration {
+  color: var(--text-muted);
+  min-width: 25px;
+  text-align: right;
+}
+
+.item-url {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  margin-right: 4px;
+}
+
+/* Unobtrusive delete button */
+.btn-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+  border-radius: 3px;
+}
+
+.btn-delete:not(:disabled):hover {
+  opacity: 1;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.btn-delete:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
