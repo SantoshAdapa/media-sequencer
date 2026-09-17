@@ -4,6 +4,7 @@
 package handlers
 
 import (
+	"log"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -132,6 +133,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 		rows, err := db.QueryContext(r.Context(),
 			"SELECT id, name, cycle_start_time FROM windows ORDER BY id")
 		if err != nil {
+			log.Printf("failed to query windows: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to query windows")
 			return
 		}
@@ -141,6 +143,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 		for rows.Next() {
 			var win models.Window
 			if err := rows.Scan(&win.ID, &win.Name, &win.CycleStartTime); err != nil {
+				log.Printf("failed to read window row: %v", err)
 				writeError(w, http.StatusInternalServerError, "failed to read window row")
 				return
 			}
@@ -149,6 +152,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 		// Close rows immediately so we free up the DB connection before making another query.
 		rows.Close()
 		if err := rows.Err(); err != nil {
+			log.Printf("error iterating windows: %v", err)
 			writeError(w, http.StatusInternalServerError, "error iterating windows")
 			return
 		}
@@ -162,6 +166,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 			FROM   media_items
 			ORDER  BY window_id ASC, order_index ASC`)
 		if err != nil {
+			log.Printf("failed to query media items: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to query media items")
 			return
 		}
@@ -175,6 +180,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 				&item.ID, &item.WindowID, &item.Type,
 				&item.URL, &item.DurationSeconds, &item.OrderIndex,
 			); err != nil {
+				log.Printf("failed to read media item row: %v", err)
 				writeError(w, http.StatusInternalServerError, "failed to read media item row")
 				return
 			}
@@ -182,6 +188,7 @@ func getWindowsHandler(db *sql.DB) http.HandlerFunc {
 		}
 		itemRows.Close()
 		if err := itemRows.Err(); err != nil {
+			log.Printf("error iterating media items: %v", err)
 			writeError(w, http.StatusInternalServerError, "error iterating media items")
 			return
 		}
@@ -271,6 +278,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		// MAX(order_index) and insert conflicting duplicates.
 		tx, err := db.BeginTx(r.Context(), nil)
 		if err != nil {
+			log.Printf("failed to begin transaction: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
 			return
 		}
@@ -287,6 +295,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 		err = tx.QueryRowContext(r.Context(),
 			"SELECT EXISTS(SELECT 1 FROM windows WHERE id = ?)", windowID).Scan(&exists)
 		if err != nil {
+			log.Printf("failed to check if window exists: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to check if window exists")
 			return
 		}
@@ -304,6 +313,7 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			"SELECT COALESCE(MAX(order_index), -1) FROM media_items WHERE window_id = ?",
 			windowID).Scan(&maxIndex)
 		if err != nil {
+			log.Printf("failed to determine playlist position: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to determine playlist position")
 			return
 		}
@@ -315,17 +325,20 @@ func addMediaHandler(db *sql.DB) http.HandlerFunc {
 			VALUES (?, ?, ?, ?, ?)`,
 			windowID, body.Type, body.URL, body.DurationSeconds, nextIndex)
 		if err != nil {
+			log.Printf("failed to save media item: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to save media item")
 			return
 		}
 
 		newID, err := result.LastInsertId()
 		if err != nil {
+			log.Printf("failed to read new item ID: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to read new item ID")
 			return
 		}
 
 		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to commit transaction")
 			return
 		}
@@ -368,6 +381,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 			"SELECT EXISTS(SELECT 1 FROM media_items WHERE id = ? AND window_id = ?)",
 			itemID, windowID).Scan(&exists)
 		if err != nil {
+			log.Printf("failed to check item existence: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to check item existence")
 			return
 		}
@@ -379,6 +393,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 		// Run deletion and re-sequencing in a transaction so we never leave gaps
 		tx, err := db.BeginTx(r.Context(), nil)
 		if err != nil {
+			log.Printf("failed to begin transaction: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to begin transaction")
 			return
 		}
@@ -388,6 +403,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 		_, err = tx.ExecContext(r.Context(),
 			"DELETE FROM media_items WHERE id = ? AND window_id = ?", itemID, windowID)
 		if err != nil {
+			log.Printf("failed to delete media item: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to delete media item")
 			return
 		}
@@ -396,6 +412,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 		rows, err := tx.QueryContext(r.Context(),
 			"SELECT id FROM media_items WHERE window_id = ? ORDER BY order_index ASC", windowID)
 		if err != nil {
+			log.Printf("failed to query remaining items: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to query remaining items")
 			return
 		}
@@ -405,6 +422,7 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 			var id int
 			if err := rows.Scan(&id); err != nil {
 				rows.Close()
+				log.Printf("failed to read remaining items: %v", err)
 				writeError(w, http.StatusInternalServerError, "failed to read remaining items")
 				return
 			}
@@ -417,12 +435,14 @@ func deleteMediaHandler(db *sql.DB) http.HandlerFunc {
 			_, err = tx.ExecContext(r.Context(),
 				"UPDATE media_items SET order_index = ? WHERE id = ?", newIndex, id)
 			if err != nil {
+				log.Printf("failed to update order_index: %v", err)
 				writeError(w, http.StatusInternalServerError, "failed to update order_index")
 				return
 			}
 		}
 
 		if err := tx.Commit(); err != nil {
+			log.Printf("failed to commit transaction: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to commit transaction")
 			return
 		}
@@ -487,6 +507,7 @@ func triggerSyncHandler(db *sql.DB) http.HandlerFunc {
 			WHERE  id = 1`,
 			body.MediaURL, body.MediaType, startedAt, body.DurationSeconds)
 		if err != nil {
+			log.Printf("failed to activate sync: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to activate sync")
 			return
 		}
@@ -533,6 +554,7 @@ func getSyncStatusHandler(db *sql.DB) http.HandlerFunc {
 				writeJSON(w, http.StatusOK, syncStatusResponse{Active: false})
 				return
 			}
+			log.Printf("failed to read sync state: %v", err)
 			writeError(w, http.StatusInternalServerError, "failed to read sync state")
 			return
 		}
@@ -547,8 +569,11 @@ func getSyncStatusHandler(db *sql.DB) http.HandlerFunc {
 		// we update the DB right here. We ignore the error on this cleanup write
 		// (log-worthy in production, but not a reason to return a 500 to the caller).
 		if state.Active && !isActive {
-			_, _ = db.ExecContext(r.Context(),
+			_, err := db.ExecContext(r.Context(),
 				"UPDATE sync_state SET active = 0 WHERE id = 1")
+			if err != nil {
+				log.Printf("failed to mark expired sync as inactive: %v", err)
+			}
 		}
 
 		writeJSON(w, http.StatusOK, syncStatusResponse{
