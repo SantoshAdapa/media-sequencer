@@ -45,27 +45,62 @@ import (
 	"github.com/SantoshAdapa/media-sequencer/backend/internal/models"
 )
 
-// cycleLengthSeconds defines the fixed 5-hour outer loop (18 000 seconds).
-// Playlists repeat continuously within this super-cycle.
-const cycleLengthSeconds int64 = 5 * 60 * 60
+// cycleLengthSeconds is the total duration of one "super-cycle" — the outer loop
+// that the elapsed time is wrapped inside. We use 5 hours (18 000 seconds).
+// Even if a playlist is only 3 minutes long, the 5-hour window ensures the
+// playlist repeats many times before the outer cycle resets.
+const cycleLengthSeconds int64 = 5 * 60 * 60 // 18 000 seconds
 
-// ComputeElapsedInCycle returns seconds elapsed since cycleStartTime, modulo the 5-hour cycle.
+
+
+// ComputeElapsedInCycle answers the question:
+// "How far into its current 5-hour super-cycle is this window right now?"
+//
+// It subtracts cycleStartTime from the current time, then folds the result into
+// the range [0, 5 hours) using the modulo (remainder) operation. This means:
+//   - A window that started at 9:00 AM, checked at 9:30 AM → 1 800 seconds elapsed.
+//   - The same window checked at 2:30 PM (past the 5-hour mark) → wraps back to
+//     1 800 seconds, as if the outer cycle reset and started again.
+//
+// DEFENSIVE BEHAVIOUR: if the clock on a device is slightly behind the stored
+// cycleStartTime (clock skew), (now − cycleStartTime) can be negative. We treat
+// that as 0 — "the cycle just began" — rather than crashing or returning garbage.
 func ComputeElapsedInCycle(cycleStartTime int64, now int64) int64 {
 	elapsed := now - cycleStartTime
-	if elapsed < 0 { // Guard against device clock skew
+
+	// Guard: if elapsed is negative (device clock skew or misconfiguration),
+	// treat it as zero — the cycle is just starting from the perspective of this device.
+	if elapsed < 0 {
 		elapsed = 0
 	}
+
+	// Fold elapsed into the 5-hour window.
+	// Example: if elapsed = 19 000 s, and the cycle is 18 000 s,
+	// the result is 1 000 — one thousand seconds into the second super-cycle.
 	return elapsed % cycleLengthSeconds
 }
 
-// ComputeCurrentItem determines which media item should be playing at elapsedSeconds.
-// It wraps elapsedSeconds over the total playlist duration, enabling seamless looping
-// within the super-cycle.
+
+
+// ComputeCurrentItem answers the question:
+// "Given that elapsedSeconds seconds have passed, which media item should be playing?"
+//
+// It walks the playlist (which must be sorted by OrderIndex, smallest first) and
+// accumulates item durations until it finds the item whose time-window covers
+// elapsedSeconds.
+//
+// REPEAT BEHAVIOUR: most playlists are much shorter than 5 hours. If elapsedSeconds
+// is longer than the full playlist, we wrap it using modulo so the playlist repeats
+// seamlessly within the outer super-cycle. For example: a 3-minute playlist checked
+// at elapsed = 4 minutes is treated as elapsed = 1 minute (second loop, 1 min in).
+//
+// Returns an error if the playlist is empty, because there is no answer to give.
 func ComputeCurrentItem(items []models.MediaItem, elapsedSeconds int64) (models.MediaItem, error) {
 	if len(items) == 0 {
 		return models.MediaItem{}, errors.New("cannot compute current item: playlist is empty")
 	}
 
+	// Calculate the total duration of one complete run through the playlist.
 	var totalDuration int64
 	for _, item := range items {
 		totalDuration += int64(item.DurationSeconds)
@@ -75,8 +110,15 @@ func ComputeCurrentItem(items []models.MediaItem, elapsedSeconds int64) (models.
 		return models.MediaItem{}, errors.New("cannot compute current item: all items have zero duration")
 	}
 
+	// Wrap elapsedSeconds into one playlist length.
+	// This is what makes the playlist repeat: a 180-second playlist checked at
+	// second 400 becomes second 40 of the playlist (400 mod 180 = 40).
 	positionInPlaylist := elapsedSeconds % totalDuration
 
+	// Walk each item, accumulating durations to find the one that "owns" our position.
+	// Think of the playlist as a number line:
+	//   item0: [0, d0)  →  item1: [d0, d0+d1)  →  item2: [d0+d1, d0+d1+d2)  → …
+	// We find the first item where positionInPlaylist falls inside its window.
 	var cursor int64
 	for _, item := range items {
 		itemEnd := cursor + int64(item.DurationSeconds)
@@ -86,23 +128,48 @@ func ComputeCurrentItem(items []models.MediaItem, elapsedSeconds int64) (models.
 		cursor = itemEnd
 	}
 
+	// This branch is mathematically unreachable: positionInPlaylist is always in
+	// [0, totalDuration), and our loop covers [0, totalDuration) exactly. We include
+	// it only to satisfy the Go compiler's requirement that all code paths return.
 	return models.MediaItem{}, fmt.Errorf(
 		"internal error: position %d not found in playlist with total duration %d",
 		positionInPlaylist, totalDuration,
 	)
 }
 
-// ComputeSyncStatus determines if a global sync event is currently active, returning
-// the remaining duration. It performs pure mathematical evaluation of the state.
+
+
+// ComputeSyncStatus answers the question:
+// "Is a global sync event happening right now, and if so, how many seconds are left?"
+//
+// A global sync event temporarily overrides every window's normal playlist and
+// forces them all to display the same piece of media at the same time. This
+// function checks whether the event is still within its scheduled duration.
+//
+// IMPORTANT: this function only REPORTS the status — it does NOT update the
+// database. If it tells the caller the sync has expired (second return value = 0),
+// the caller is responsible for writing that change to the database so future
+// requests don't have to do this calculation again.
+//
+// Returns:
+//   - (false, 0) if there is no sync event active.
+//   - (false, 0) if the sync event's duration has fully elapsed.
+//   - (true, N)  if the sync is still running, where N is how many seconds remain.
 func ComputeSyncStatus(state models.SyncState, now int64) (active bool, remainingSeconds int64) {
+	// If the database says sync is inactive, there's nothing to check.
 	if !state.Active {
 		return false, 0
 	}
 
+	// Calculate how many seconds have passed since the sync began.
 	elapsed := now - state.StartedAt
+
+	// If the elapsed time is at or beyond the total duration, the sync has ended.
 	if elapsed >= int64(state.DurationSeconds) {
 		return false, 0
 	}
 
-	return true, int64(state.DurationSeconds) - elapsed
+	// The sync is still running. Return how many seconds are left.
+	remaining := int64(state.DurationSeconds) - elapsed
+	return true, remaining
 }

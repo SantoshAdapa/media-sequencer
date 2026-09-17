@@ -76,9 +76,9 @@ func TestAddMediaHandler_RaceCondition(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/windows/1/media", bytes.NewReader(bodyBytes))
 			req.Header.Set("Content-Type", "application/json")
-
+			
 			w := httptest.NewRecorder()
-
+			
 			// Simulate slight variations in start time to maximise collision chance
 			// if transactions were not used.
 			r.ServeHTTP(w, req)
