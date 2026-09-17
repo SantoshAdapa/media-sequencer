@@ -49,7 +49,9 @@ function AddMediaForm({ windowId, onSuccess }) {
 
   return (
     <form className="add-media-form" onSubmit={handleSubmit}>
-      <h4>Add to playlist</h4>
+
+      {/* Section label — plain text, not styled to look interactive */}
+      <p className="amf-label">Add media to this window's playlist</p>
 
       <div className="amf-fields">
         {/* Type selector */}
@@ -58,18 +60,18 @@ function AddMediaForm({ windowId, onSuccess }) {
           <select value={type} onChange={(e) => setType(e.target.value)}>
             <option value="image">Image</option>
             <option value="video">Video</option>
-            <option value="blank">Blank</option>
+            <option value="blank">Blank (black screen)</option>
           </select>
         </label>
 
         {/* URL input — hidden for "blank" since it needs no URL */}
         {type !== 'blank' && (
           <label>
-            URL
+            Media URL
             <input
               type="url"
               value={url}
-              placeholder="https://…"
+              placeholder="e.g. https://picsum.photos/800/600"
               onChange={(e) => setUrl(e.target.value)}
               required
             />
@@ -78,23 +80,30 @@ function AddMediaForm({ windowId, onSuccess }) {
 
         {/* Duration in seconds */}
         <label>
-          Duration (s)
+          Duration (seconds)
           <input
             type="number"
             value={duration}
             min={1}
+            placeholder="e.g. 10"
             onChange={(e) => setDuration(e.target.value)}
             required
           />
         </label>
       </div>
 
+      {/* Inline usage hint */}
+      <p className="amf-hint">
+        Choose a type, paste a media URL (leave blank for a black screen), set how
+        many seconds it should play, then click Add Item.
+      </p>
+
       <div className="amf-footer">
-        <button type="submit" disabled={status === 'loading'}>
-          {status === 'loading' ? 'Saving…' : '+ Add'}
+        <button type="submit" className="amf-submit" disabled={status === 'loading'}>
+          {status === 'loading' ? 'Saving…' : 'Add Item'}
         </button>
 
-        {status === 'success' && <span className="msg-success">✓ Added</span>}
+        {status === 'success' && <span className="msg-success">Item added successfully.</span>}
         {status === 'error'   && <span className="msg-error">{errMsg}</span>}
       </div>
     </form>

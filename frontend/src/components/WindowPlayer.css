@@ -66,37 +66,23 @@
 .player-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  padding: 7px 10px;
   background: var(--surface-2);
   border-top: 1px solid var(--border);
-  min-height: 28px;
-  font-size: 0.72rem;
+  min-height: 30px;
+  font-size: 0.75rem;
 }
 
-/* Colour-coded chip for the media type */
-.type-chip {
-  padding: 1px 7px;
-  border-radius: 3px;
-  font-weight: 600;
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+/* Single readable caption: "Now playing: Video (30s) — Item 2 of 5" */
+.player-caption {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.type-image { background: #1f4068; color: #79b8ff; }
-.type-video { background: #1f3a1a; color: #56d364; }
-.type-blank { background: #2d2d2d; color: #768390; }
-
-.player-duration,
-.player-index {
-  color: var(--text-muted);
-  font-size: 0.7rem;
-}
-
-.player-index { margin-left: auto; }
 
 .player-empty {
   color: var(--text-muted);
   font-style: italic;
 }
+

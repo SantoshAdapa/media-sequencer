@@ -37,15 +37,28 @@ h4 { font-size: 0.8rem;  font-weight: 600; color: var(--text-muted); text-transf
 
 /* ── App shell ───────────────────────────────────────────────────────────── */
 .app-header {
-  padding: 12px 24px;
+  padding: 14px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+}
+
+.app-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .app-header h1 { color: var(--accent); }
+
+.app-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  max-width: 68ch;
+  line-height: 1.5;
+}
 
 .app-main {
   max-width: 1440px;

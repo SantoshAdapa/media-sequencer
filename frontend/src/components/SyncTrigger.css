@@ -13,13 +13,14 @@
 .sync-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .sync-desc {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
-  max-width: 60ch;
+  max-width: 72ch;
+  line-height: 1.6;
 }
 
 /* Horizontal row of fields on wide screens, vertical stack on narrow */
@@ -30,8 +31,8 @@
   align-items: flex-end;
 }
 
-/* Type and Duration labels are narrow; URL label should stretch to fill remaining space */
-.sync-fields label { min-width: 100px; flex: 0 0 auto; }
+/* Type and Duration labels are narrow; URL label stretches to fill remaining space */
+.sync-fields label { min-width: 120px; flex: 0 0 auto; }
 .sync-url-label    { flex: 1 1 260px; }
 
 /* Bottom row with the submit button and feedback */
@@ -42,10 +43,11 @@
   flex-wrap: wrap;
 }
 
-/* Make the sync button slightly more prominent than the per-window "Add" buttons */
+/* Sync button — uses the accent colour (blue), not purple */
 .sync-btn {
-  background: #6e40c9;   /* purple to distinguish from the blue "Add" buttons */
-  padding: 6px 18px;
+  background: var(--accent);
+  padding: 7px 20px;
   font-size: 0.85rem;
+  letter-spacing: 0.02em;
 }
-.sync-btn:not(:disabled):hover { background: #7d4fd4; opacity: 1; }
+.sync-btn:not(:disabled):hover { opacity: 0.85; }

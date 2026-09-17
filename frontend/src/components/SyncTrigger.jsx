@@ -43,10 +43,12 @@ function SyncTrigger() {
   return (
     <section className="sync-trigger">
       <div className="sync-header">
-        <h2>⚡ Global Sync Override</h2>
+        <h2>Global Sync Override</h2>
         <p className="sync-desc">
-          Broadcast one piece of media to every window simultaneously.
-          All windows resume their normal playlists when the duration expires.
+          This will immediately interrupt every window below and show the same item
+          on all of them for the number of seconds you specify. After that time,
+          each window automatically returns to its own playlist. Use this to push
+          a single announcement or highlight to all screens at once.
         </p>
       </div>
 
@@ -54,7 +56,7 @@ function SyncTrigger() {
         <div className="sync-fields">
           {/* Type — blank doesn't make sense for a takeover event */}
           <label>
-            Type
+            Media type
             <select value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
               <option value="image">Image</option>
               <option value="video">Video</option>
@@ -67,7 +69,7 @@ function SyncTrigger() {
             <input
               type="url"
               value={mediaUrl}
-              placeholder="https://…"
+              placeholder="e.g. https://picsum.photos/800/600"
               onChange={(e) => setMediaUrl(e.target.value)}
               required
             />
@@ -75,11 +77,12 @@ function SyncTrigger() {
 
           {/* How long the takeover should last */}
           <label>
-            Duration (s)
+            Duration (seconds)
             <input
               type="number"
               value={duration}
               min={1}
+              placeholder="e.g. 30"
               onChange={(e) => setDuration(e.target.value)}
               required
             />
@@ -88,12 +91,12 @@ function SyncTrigger() {
 
         <div className="sync-footer">
           <button type="submit" className="sync-btn" disabled={status === 'loading'}>
-            {status === 'loading' ? 'Triggering…' : '⚡ Trigger Sync'}
+            {status === 'loading' ? 'Triggering…' : 'Trigger Sync on All Windows'}
           </button>
 
           {status === 'success' && (
             <span className="msg-success">
-              ✓ Sync triggered — all windows will update within 500 ms.
+              Sync triggered — all windows will update within half a second.
             </span>
           )}
           {status === 'error' && (

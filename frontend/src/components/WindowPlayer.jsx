@@ -161,28 +161,33 @@ function WindowPlayer({ window: win }) {
       <div className="media-viewport">
         <MediaRenderer item={currentItem} />
 
-        {/* Overlay badges */}
+        {/* Overlay badge — shown only while a global sync is active */}
         {syncInfo?.active && (
           <div className="badge badge-sync" title={`${syncInfo.remainingSeconds}s remaining`}>
-            ⚡ SYNC {syncInfo.remainingSeconds > 0 ? `${syncInfo.remainingSeconds}s` : ''}
+            SYNCED — {syncInfo.remainingSeconds > 0 ? `${syncInfo.remainingSeconds}s left` : 'ending…'}
           </div>
         )}
       </div>
 
-      {/* Footer: shows the current item's type and duration */}
+      {/* Footer: human-readable caption of what is currently playing */}
       <div className="player-footer">
         {currentItem ? (
-          <>
-            <span className={`type-chip type-${currentItem.type}`}>{currentItem.type}</span>
-            {currentItem.durationSeconds != null && (
-              <span className="player-duration">{currentItem.durationSeconds}s</span>
-            )}
-            {currentItem.orderIndex != null && (
-              <span className="player-index">#{currentItem.orderIndex}</span>
-            )}
-          </>
+          <span className="player-caption">
+            {syncInfo?.active
+              ? /* During a sync, say so clearly */
+                `Sync override: ${currentItem.type} — ${syncInfo.remainingSeconds}s remaining`
+              : /* Normal playback: spell out type, duration, and position */
+                `Now playing: ${
+                  currentItem.type.charAt(0).toUpperCase() + currentItem.type.slice(1)
+                }${currentItem.durationSeconds != null ? ` (${currentItem.durationSeconds}s)` : ''}${
+                  currentItem.orderIndex != null
+                    ? ` — Item ${currentItem.orderIndex + 1} of ${win.mediaItems?.length ?? '?'}`
+                    : ''
+                }`
+            }
+          </span>
         ) : (
-          <span className="player-empty">empty playlist</span>
+          <span className="player-empty">No items in playlist yet.</span>
         )}
       </div>
     </div>

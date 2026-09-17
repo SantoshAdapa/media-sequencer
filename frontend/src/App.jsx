@@ -47,7 +47,13 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>🎬 Multi-Window Media Sequencer</h1>
+        <div className="app-title-group">
+          <h1>Multi-Window Media Sequencer</h1>
+          <p className="app-subtitle">
+            Manage independent media playlists across multiple display windows,
+            with the ability to broadcast a single item to all screens at once.
+          </p>
+        </div>
       </header>
 
       <main className="app-main">
