@@ -1,21 +1,13 @@
 /* WindowGrid.css ─────────────────────────────────────────────────────────── */
 
-/* 5-column grid on wide screens, wrapping gracefully */
+/* Responsive grid aiming for ~400px wide tiles (3 on top row, 2 on bottom for a 5-window setup on 1080p) */
 .window-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: var(--space-3);
 }
 
-@media (max-width: 1400px) {
-  .window-grid { grid-template-columns: repeat(4, 1fr); }
-}
-
-@media (max-width: 1100px) {
-  .window-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 800px) {
+@media (max-width: 850px) {
   .window-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

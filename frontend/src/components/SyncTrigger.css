@@ -4,50 +4,60 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
+  padding: 12px var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  width: 100%;
 }
 
 .sync-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
+}
+
+.sync-header h2 {
+  font-size: 0.95rem;
+  margin-bottom: 0;
 }
 
 .sync-desc {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
-  max-width: 72ch;
-  line-height: 1.5;
+  max-width: 100%;
+  line-height: 1.4;
 }
 
-/* Horizontal row of fields on wide screens, vertical stack on narrow */
-.sync-fields {
+.sync-form {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: flex-end;
 }
 
-/* Type and Duration labels are narrow; URL label stretches to fill remaining space */
-.sync-fields label { min-width: 120px; flex: 0 0 auto; }
-.sync-url-label    { flex: 1 1 260px; }
+.sync-fields {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-end;
+}
 
-/* Bottom row with the submit button and feedback */
+.sync-fields label { min-width: 100px; flex: 0 0 auto; }
+.sync-url-label    { flex: 1 1 200px; }
+
 .sync-footer {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex-wrap: wrap;
+  min-height: 34px; /* match input height */
 }
 
-/* Sync button — uses the accent colour (blue) */
 .sync-btn {
   background: var(--accent);
-  padding: var(--space-1) var(--space-2);
-  font-size: 0.875rem;
+  padding: 6px var(--space-2);
+  font-size: 0.8125rem;
   letter-spacing: 0.02em;
 }
 .sync-btn:not(:disabled):hover { opacity: 0.85; }
