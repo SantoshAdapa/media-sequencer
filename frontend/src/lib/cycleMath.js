@@ -83,7 +83,9 @@ export function computeCurrentItem(items, elapsedSeconds) {
   for (const item of items) {
     const itemEnd = cursor + item.durationSeconds;
     if (positionInPlaylist >= cursor && positionInPlaylist < itemEnd) {
-      return item;
+      // Attach the computed playback offset (how many seconds into this item we are)
+      // so video players can synchronize their currentTime.
+      return { ...item, offset: positionInPlaylist - cursor };
     }
     cursor = itemEnd;
   }

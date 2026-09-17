@@ -36,6 +36,29 @@ import './WindowPlayer.css';
 // Picks the correct HTML element to display for any given media item type.
 
 function MediaRenderer({ item }) {
+  const videoRef = useRef(null);
+
+  // When the item updates (which is every 500ms due to the WindowPlayer tick),
+  // we check if the video's actual playback time is drifting from the mathematically
+  // correct offset. If it's off by more than 1 second, we force a sync.
+  // This guarantees all windows stay in sync, but prevents stuttering.
+  useEffect(() => {
+    if (videoRef.current && item?.type === 'video' && item.offset != null) {
+      const vid = videoRef.current;
+      // If the video has loaded its metadata, we know its true duration.
+      // We modulo the offset by duration so that if a 10s video is played
+      // in a 30s slot, it correctly syncs to the 2nd or 3rd loop.
+      const targetTime = (vid.duration && vid.duration > 0) 
+        ? (item.offset % vid.duration) 
+        : item.offset;
+
+      const diff = Math.abs(vid.currentTime - targetTime);
+      if (diff > 1.0) {
+        vid.currentTime = targetTime;
+      }
+    }
+  }, [item]);
+
   if (!item) {
     // No item at all — show a dark placeholder.
     return <div className="media-blank" aria-label="No media" />;
@@ -65,6 +88,7 @@ function MediaRenderer({ item }) {
     // in the player buffer even after the src attribute changes.
     return (
       <video
+        ref={videoRef}
         key={item.url}
         src={item.url}
         className="media-content"
@@ -122,12 +146,14 @@ function WindowPlayer({ window: win }) {
       }
 
       if (status?.active) {
-        // ── SYNC MODE ───────────────────────────────────────────────────────
+        // ── SYNC MODE ──
         // Override this window's normal playlist with the global sync media.
         setSyncInfo(status);
+        const nowSeconds = Math.floor(Date.now() / 1000);
         setCurrentItem({
           type: status.mediaType,
           url:  status.mediaUrl,
+          offset: Math.max(0, nowSeconds - status.startedAt),
         });
       } else {
         // ── NORMAL MODE ─────────────────────────────────────────────────────
